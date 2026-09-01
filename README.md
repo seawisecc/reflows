@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Reflows
 
-## Getting Started
+Otomasi admin WhatsApp: membalas chat client otomatis, mengelola percakapan,
+dan nanti mengejar calon client lewat follow-up bertahap.
 
-First, run the development server:
+Latar belakang dan alasan setiap pilihan ada di
+[`docs/keputusan-produk.md`](docs/keputusan-produk.md).
+
+## Status
+
+**Fase 0, fondasi.** Antarmuka sudah berdiri dengan data contoh. Belum ada
+koneksi ke Supabase maupun gateway WhatsApp, jadi belum ada pesan yang benar
+benar terkirim atau diterima.
+
+## Menjalankan
 
 ```bash
+npm install
+cp .env.example .env.local   # boleh dibiarkan kosong selama Fase 0
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka http://localhost:3000, halaman utama langsung mengarah ke `/dasbor`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Perintah
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Perintah | Fungsi |
+|---|---|
+| `npm run dev` | Server pengembangan |
+| `npm run build` | Build produksi |
+| `npm run lint` | ESLint |
+| `npm run periksa` | Lint, typecheck, dan build sekaligus |
 
-## Learn More
+## Susunan folder
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/app/(aplikasi)/   Halaman dasbor, satu folder per menu
+src/komponen/ui/      Komponen pixel: tombol, kartu, tabel, lencana, grafik
+src/komponen/shell/   Bilah sisi, bilah atas, tombol tema
+src/lib/              Utilitas, tema, klien Supabase, data contoh
+src/tipe/             Tipe domain
+supabase/migrasi/     Skema database dan kebijakan RLS
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tema
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Dua tema, keduanya lengkap dan bukan sekadar pembalikan warna:
 
-## Deploy on Vercel
+- **Deep Reef**, gelap, bawaan
+- **Sunset Arcade**, terang hangat
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Pilihan tema disimpan di localStorage dan dipasang lewat skrip kecil di
+`<head>` sebelum halaman dirender, jadi tidak ada kedipan saat memuat.
+Menambah tema baru cukup menambahkan satu blok `[data-tema="..."]` di
+`src/app/globals.css`, komponen tidak perlu disentuh.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database
+
+`supabase/migrasi/0001_skema_awal.sql` berisi skema lengkap beserta Row Level
+Security. Setiap tabel bisnis membawa `tenant_id`, dan seluruh kebijakan
+bertumpu pada fungsi `public.tenant_saya()`.
+
+Migrasi ini belum pernah dijalankan terhadap Postgres. Jalankan dulu di
+proyek Supabase percobaan sebelum dipakai serius.

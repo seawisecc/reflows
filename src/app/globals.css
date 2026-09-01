@@ -1,26 +1,258 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* =========================================================
+   Reflows | Design System Pixel Modern
+   Dua tema: Deep Reef (gelap, default) dan Sunset Arcade (terang).
+   Semua warna lewat CSS variable supaya komponen tidak perlu
+   tahu tema apa yang sedang aktif.
+   ========================================================= */
+
+:root,
+[data-tema="deep-reef"] {
+  --bg: #0b1220;
+  --bg-grid: #131f36;
+  --permukaan: #111b2e;
+  --permukaan-2: #16233c;
+  --garis: #1e2b45;
+  --garis-tegas: #2b3d5f;
+  --teks: #e6edf7;
+  --redup: #7f8fa8;
+  --aksen: #37e0c8;
+  --aksen-teks: #04211c;
+  --sekunder: #5b8cff;
+  --sekunder-teks: #04122e;
+  --sukses: #37e0c8;
+  --tunggu: #ffc24b;
+  --gagal: #ff5c7a;
+  --bayang: #04070d;
+  --sorot: rgba(55, 224, 200, 0.14);
+  /* Seri grafik. Sengaja lebih gelap dari --aksen supaya masuk pita
+     kecerahan yang aman dibaca sebagai bidang isi, bukan sebagai teks. */
+  --seri-1: #12a896;
+  --seri-2: #5b8cff;
+  /* Versi "tinta" dipakai saat warna muncul sebagai teks, garis, atau ikon.
+     Di tema gelap sama dengan warna dasarnya, karena sudah cukup kontras. */
+  --aksen-tinta: #37e0c8;
+  --sekunder-tinta: #5b8cff;
+  --sukses-tinta: #37e0c8;
+  --tunggu-tinta: #ffc24b;
+  --gagal-tinta: #ff5c7a;
+  --gagal-teks: #2a0710;
+}
+
+[data-tema="sunset-arcade"] {
+  --bg: #fff6ec;
+  --bg-grid: #f4e3cf;
+  --permukaan: #ffffff;
+  --permukaan-2: #fff0de;
+  --garis: #e8d5bf;
+  --garis-tegas: #1e1710;
+  --teks: #1e1710;
+  --redup: #7a6a58;
+  --aksen: #ff6b35;
+  --aksen-teks: #2b0d00;
+  --sekunder: #7b2cbf;
+  --sekunder-teks: #ffffff;
+  --sukses: #2fa84f;
+  --tunggu: #e8a33d;
+  --gagal: #e0443e;
+  --bayang: #1e1710;
+  --sorot: rgba(255, 107, 53, 0.12);
+  --seri-1: #e8551f;
+  --seri-2: #7b2cbf;
+  /* Di atas dasar terang, warna cerah tidak terbaca sebagai teks kecil.
+     Nilai ini semua lulus 4.5:1 terhadap --bg maupun --permukaan. */
+  --aksen-tinta: #c4451a;
+  --sekunder-tinta: #7b2cbf;
+  --sukses-tinta: #1e7a38;
+  --tunggu-tinta: #9a6410;
+  --gagal-tinta: #c0271f;
+  --gagal-teks: #ffffff;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-permukaan: var(--permukaan);
+  --color-permukaan-2: var(--permukaan-2);
+  --color-garis: var(--garis);
+  --color-garis-tegas: var(--garis-tegas);
+  --color-teks: var(--teks);
+  --color-redup: var(--redup);
+  --color-aksen: var(--aksen);
+  --color-aksen-teks: var(--aksen-teks);
+  --color-sekunder: var(--sekunder);
+  --color-sekunder-teks: var(--sekunder-teks);
+  --color-sukses: var(--sukses);
+  --color-tunggu: var(--tunggu);
+  --color-gagal: var(--gagal);
+  --color-seri-1: var(--seri-1);
+  --color-seri-2: var(--seri-2);
+  --color-aksen-tinta: var(--aksen-tinta);
+  --color-sekunder-tinta: var(--sekunder-tinta);
+  --color-sukses-tinta: var(--sukses-tinta);
+  --color-tunggu-tinta: var(--tunggu-tinta);
+  --color-gagal-tinta: var(--gagal-tinta);
+  --color-gagal-teks: var(--gagal-teks);
+
+  --font-pixel: var(--font-pixel-display);
+  --font-sans: var(--font-badan);
+  --font-mono: var(--font-angka);
+
+  --radius-none: 0px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Pixel art tidak pernah punya sudut bulat. Nol di mana-mana. */
+* {
+  border-radius: 0 !important;
+}
+
+html {
+  color-scheme: dark;
+}
+
+[data-tema="sunset-arcade"] {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  /* Kisi halus 24px, memberi kesan kanvas pixel tanpa mengganggu keterbacaan */
+  background-image:
+    linear-gradient(to right, var(--bg-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--bg-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--teks);
+  font-family: var(--font-badan), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--aksen);
+  color: var(--aksen-teks);
+}
+
+/* --------------------------------------------------------
+   Tipografi
+   Font pixel hanya untuk judul, angka besar, dan lencana.
+   Badan teks tetap sans biasa supaya tetap terbaca.
+   -------------------------------------------------------- */
+.pixel {
+  font-family: var(--font-pixel-display), ui-monospace, monospace;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+
+.angka {
+  font-family: var(--font-angka), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------
+   Primitif pixel
+   -------------------------------------------------------- */
+.kotak {
+  background-color: var(--permukaan);
+  border: 2px solid var(--garis);
+}
+
+.kotak-tegas {
+  border-color: var(--garis-tegas);
+}
+
+.bayang-pixel {
+  box-shadow: 4px 4px 0 0 var(--bayang);
+}
+
+.bayang-pixel-kecil {
+  box-shadow: 2px 2px 0 0 var(--bayang);
+}
+
+/* Tombol dan kartu yang bisa ditekan: bergeser masuk seperti tombol arcade */
+.tekan {
+  transition:
+    transform 80ms steps(2, end),
+    box-shadow 80ms steps(2, end),
+    background-color 120ms ease;
+}
+
+.tekan:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 0 var(--bayang);
+}
+
+.tekan:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 0 var(--bayang);
+}
+
+/* Fokus keyboard yang kelihatan jelas di dua tema */
+.fokus-pixel:focus-visible {
+  outline: 2px solid var(--aksen);
+  outline-offset: 2px;
+}
+
+/* Garis putus khas terminal untuk pemisah */
+.pemisah-pixel {
+  height: 2px;
+  background-image: linear-gradient(
+    to right,
+    var(--garis) 0 6px,
+    transparent 6px 12px
+  );
+  background-size: 12px 2px;
+  background-repeat: repeat-x;
+}
+
+/* Bar progres blok, bukan bar mulus */
+.bar-blok {
+  background-image: linear-gradient(
+    to right,
+    currentColor 0 6px,
+    transparent 6px 8px
+  );
+  background-size: 8px 100%;
+  background-repeat: repeat-x;
+}
+
+/* Denyut untuk indikator status yang hidup */
+@keyframes denyut-pixel {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.denyut {
+  animation: denyut-pixel 1.4s steps(2, end) infinite;
+}
+
+/* Scrollbar ikut tema */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--garis-tegas) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--garis-tegas);
+  border: 2px solid var(--bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tekan,
+  .denyut {
+    transition: none;
+    animation: none;
+  }
+  .tekan:hover,
+  .tekan:active {
+    transform: none;
+  }
 }
