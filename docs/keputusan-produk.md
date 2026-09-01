@@ -78,6 +78,16 @@ Setengah dari mesin outbound isinya justru rem, bukan gas:
   Nilai `cache_read_input_tokens` di respons harus dipantau, kalau nol terus
   berarti ada yang membatalkan cache secara diam-diam.
 
+## Ketajaman teks
+
+Font pixel hanya tajam di ukuran kelipatan 8. Skalanya dikunci lewat kelas
+`pixel-sm`, `pixel-lg`, dan `pixel-xl`, bukan angka lepas di komponen, supaya
+tidak melenceng lagi saat halaman baru ditambah. Rinciannya di README.
+
+Teks kecil non-pixel dinaikkan dari 10 dan 11 piksel ke 12 piksel, dan nama
+kontak dipindah dari font pixel ke font badan supaya nama orang lebih mudah
+dibaca.
+
 ## Warna grafik
 
 Warna seri grafik sengaja dipisah dari warna aksen antarmuka, karena warna

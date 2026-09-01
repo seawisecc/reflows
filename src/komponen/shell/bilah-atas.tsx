@@ -21,7 +21,7 @@ export function BilahAtas({
       <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
         <BilahSisi />
         <div className="min-w-0 flex-1">
-          <h1 className="pixel truncate text-[12px] uppercase text-teks">
+          <h1 className="pixel-lg truncate uppercase text-teks">
             {judul}
           </h1>
           {keterangan ? (
@@ -37,7 +37,7 @@ export function BilahAtas({
           <TombolTema />
           <div className="hidden items-center gap-2 border-2 border-garis bg-permukaan px-2.5 py-1.5 sm:flex">
             <Bot className="size-4 text-aksen-tinta" />
-            <span className="pixel text-[9px] uppercase text-redup">Hybrid</span>
+            <span className="pixel-sm uppercase text-redup">Hybrid</span>
           </div>
         </div>
       </div>

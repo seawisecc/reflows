@@ -26,7 +26,7 @@ export function Lencana({
   return (
     <span
       className={cn(
-        "pixel inline-flex items-center gap-1.5 border-2 px-2 py-1 text-[9px] uppercase leading-none",
+        "pixel-sm inline-flex items-center gap-1.5 border-2 px-2 py-1 uppercase",
         NADA[nada],
         className,
       )}

@@ -32,7 +32,7 @@ export function KepalaKartu({
       )}
     >
       <div className="min-w-0">
-        <h2 className="pixel text-[11px] uppercase text-teks">{judul}</h2>
+        <h2 className="pixel-lg uppercase text-teks">{judul}</h2>
         {keterangan ? (
           <p className="mt-1.5 text-xs leading-relaxed text-redup">
             {keterangan}

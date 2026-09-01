@@ -28,7 +28,7 @@ export function KartuStatistik({
   return (
     <Kartu className="p-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="pixel text-[9px] uppercase leading-relaxed text-redup">
+        <p className="pixel-sm uppercase text-redup">
           {label}
         </p>
         {Ikon ? <Ikon className={cn("size-4 shrink-0", warna)} /> : null}
@@ -38,7 +38,7 @@ export function KartuStatistik({
           {nilai}
         </span>
         {satuan ? (
-          <span className="pixel text-[9px] uppercase text-redup">{satuan}</span>
+          <span className="pixel-sm uppercase text-redup">{satuan}</span>
         ) : null}
       </p>
       {catatan ? (

@@ -69,7 +69,7 @@ export function Inbox({ percakapan }: { percakapan: Percakapan[] }) {
                 onClick={() => setSaringan(s.kunci)}
                 aria-pressed={saringan === s.kunci}
                 className={cn(
-                  "pixel fokus-pixel border-2 px-2 py-1 text-[8px] uppercase",
+                  "pixel-sm fokus-pixel border-2 px-2 py-1 uppercase",
                   saringan === s.kunci
                     ? "border-aksen-tinta bg-[var(--sorot)] text-teks"
                     : "border-garis text-redup hover:border-garis-tegas hover:text-teks",
@@ -107,7 +107,7 @@ export function Inbox({ percakapan }: { percakapan: Percakapan[] }) {
                     <span className="min-w-0 flex-1 truncate text-sm text-teks">
                       {p.kontak.nama}
                     </span>
-                    <span className="angka shrink-0 text-[10px] text-redup">
+                    <span className="angka shrink-0 text-xs text-redup">
                       {waktu_relatif(p.pesan_terakhir_at)}
                     </span>
                   </div>
@@ -143,7 +143,7 @@ export function Inbox({ percakapan }: { percakapan: Percakapan[] }) {
           <>
             <div className="flex flex-wrap items-start justify-between gap-3 border-b-2 border-garis p-4">
               <div className="min-w-0">
-                <h2 className="pixel truncate text-[11px] uppercase text-teks">
+                <h2 className="truncate text-base font-semibold text-teks">
                   {aktif.kontak.nama}
                 </h2>
                 <p className="angka mt-1.5 text-xs text-redup">
@@ -171,7 +171,7 @@ export function Inbox({ percakapan }: { percakapan: Percakapan[] }) {
               <div className="flex items-start gap-2.5 border-b-2 border-garis bg-permukaan-2 px-4 py-3">
                 <TriangleAlert className="mt-0.5 size-4 shrink-0 text-tunggu-tinta" />
                 <p className="text-xs leading-relaxed text-redup">
-                  <span className="pixel text-[9px] uppercase text-tunggu-tinta">
+                  <span className="pixel-sm uppercase text-tunggu-tinta">
                     AI berhenti bicara
                   </span>
                   <br />
@@ -197,14 +197,14 @@ export function Inbox({ percakapan }: { percakapan: Percakapan[] }) {
                       ) : m.pengirim === "manusia" ? (
                         <User className="size-3.5 text-sekunder-tinta" />
                       ) : null}
-                      <span className="pixel text-[8px] uppercase text-redup">
+                      <span className="pixel-sm uppercase text-redup">
                         {m.pengirim === "ai"
                           ? "Reflows AI"
                           : m.pengirim === "manusia"
                             ? "Kamu"
                             : "Kontak"}
                       </span>
-                      <span className="angka text-[10px] text-redup">
+                      <span className="angka text-xs text-redup">
                         {jam(m.waktu)}
                       </span>
                     </div>
@@ -219,7 +219,7 @@ export function Inbox({ percakapan }: { percakapan: Percakapan[] }) {
                       {m.isi}
                     </div>
                     {typeof m.keyakinan === "number" ? (
-                      <span className="pixel text-[8px] uppercase text-redup">
+                      <span className="pixel-sm uppercase text-redup">
                         Keyakinan {Math.round(m.keyakinan * 100)}%
                       </span>
                     ) : null}
@@ -240,7 +240,7 @@ export function Inbox({ percakapan }: { percakapan: Percakapan[] }) {
                   Kirim
                 </Tombol>
               </div>
-              <p className="mt-2 text-[10px] text-redup">
+              <p className="mt-2 text-xs text-redup">
                 Pengiriman aktif setelah gateway WhatsApp tersambung di Fase 1.
               </p>
             </div>

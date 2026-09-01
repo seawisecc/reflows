@@ -136,10 +136,39 @@ body {
    Font pixel hanya untuk judul, angka besar, dan lencana.
    Badan teks tetap sans biasa supaya tetap terbaca.
    -------------------------------------------------------- */
-.pixel {
+/* Press Start 2P digambar di grid 1/8 em, jadi glyph-nya hanya jatuh pas
+   di piksel layar kalau ukurannya kelipatan 8. Di ukuran lain setiap sisi
+   huruf terbelah dan hasilnya terlihat berkabut. Diukur dengan menghitung
+   level intensitas pada render: 6 sampai 18 level di kelipatan 8, tapi 50
+   sampai 83 di ukuran lain.
+
+   Karena itu ukuran font pixel tidak pernah ditulis lepas di komponen.
+   Pakai salah satu dari tiga kelas ini saja. Letter-spacing wajib nol dan
+   line-height wajib bilangan bulat, kalau tidak posisi huruf bergeser ke
+   antara piksel dan ketajamannya hilang lagi. */
+.pixel,
+.pixel-sm,
+.pixel-lg,
+.pixel-xl {
   font-family: var(--font-pixel-display), ui-monospace, monospace;
-  letter-spacing: 0.02em;
-  line-height: 1.6;
+  letter-spacing: 0;
+  font-synthesis: none;
+  text-rendering: optimizeSpeed;
+}
+
+.pixel-sm {
+  font-size: 8px;
+  line-height: 16px;
+}
+
+.pixel-lg {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.pixel-xl {
+  font-size: 24px;
+  line-height: 32px;
 }
 
 .angka {

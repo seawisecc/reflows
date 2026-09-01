@@ -42,6 +42,29 @@ src/tipe/             Tipe domain
 supabase/migrasi/     Skema database dan kebijakan RLS
 ```
 
+## Aturan font pixel
+
+Press Start 2P digambar di grid 1/8 em, jadi hurufnya hanya jatuh pas di
+piksel layar kalau ukurannya kelipatan 8. Di ukuran lain setiap sisi huruf
+terbelah dan teks terlihat berkabut. Ini terukur: jumlah level intensitas
+pada render adalah 6 sampai 18 di ukuran kelipatan 8, tapi melonjak jadi 50
+sampai 83 di ukuran 9, 11, 12, dan 14.
+
+Karena itu ukuran font pixel tidak pernah ditulis lepas di komponen. Pakai
+salah satu dari tiga kelas ini saja:
+
+| Kelas | Ukuran | Untuk |
+|---|---|---|
+| `pixel-sm` | 8px | Label, lencana, kepala tabel, tombol |
+| `pixel-lg` | 16px | Judul halaman dan judul kartu |
+| `pixel-xl` | 24px | Angka sorotan, belum terpakai |
+
+Jangan menimpanya dengan `text-[..]` atau `leading-*`, keduanya sudah diatur
+kelasnya dan nilai pecahan akan menggeser huruf ke antara piksel.
+
+Teks yang isinya data, misalnya nama kontak, memakai font badan biasa. Font
+pixel menyulitkan membaca nama orang.
+
 ## Tema
 
 Dua tema, keduanya lengkap dan bukan sekadar pembalikan warna:

@@ -60,7 +60,7 @@ export function GrafikAktivitas({ data }: { data: BarisAktivitas[] }) {
         <button
           type="button"
           onClick={() => setTabel((v) => !v)}
-          className="pixel fokus-pixel inline-flex items-center gap-2 border-2 border-garis px-2 py-1.5 text-[9px] uppercase text-redup hover:border-garis-tegas hover:text-teks"
+          className="pixel-sm fokus-pixel inline-flex items-center gap-2 border-2 border-garis px-2 py-1.5 uppercase text-redup hover:border-garis-tegas hover:text-teks"
         >
           {tabel ? (
             <BarChart3 className="size-3.5" />
@@ -76,16 +76,16 @@ export function GrafikAktivitas({ data }: { data: BarisAktivitas[] }) {
           <table className="w-full border-collapse text-left text-sm">
             <thead className="border-b-2 border-garis">
               <tr>
-                <th className="pixel py-2 pr-4 text-[9px] font-normal uppercase text-redup">
+                <th className="pixel-sm py-2 pr-4 font-normal uppercase text-redup">
                   Hari
                 </th>
-                <th className="pixel py-2 pr-4 text-right text-[9px] font-normal uppercase text-redup">
+                <th className="pixel-sm py-2 pr-4 text-right font-normal uppercase text-redup">
                   Masuk
                 </th>
-                <th className="pixel py-2 pr-4 text-right text-[9px] font-normal uppercase text-redup">
+                <th className="pixel-sm py-2 pr-4 text-right font-normal uppercase text-redup">
                   Dijawab AI
                 </th>
-                <th className="pixel py-2 text-right text-[9px] font-normal uppercase text-redup">
+                <th className="pixel-sm py-2 text-right font-normal uppercase text-redup">
                   Ditangani kamu
                 </th>
               </tr>
@@ -100,7 +100,7 @@ export function GrafikAktivitas({ data }: { data: BarisAktivitas[] }) {
                 </tr>
               ))}
               <tr>
-                <td className="pixel py-2 pr-4 text-[9px] uppercase text-redup">
+                <td className="pixel-sm py-2 pr-4 uppercase text-redup">
                   Total
                 </td>
                 <td className="angka py-2 pr-4 text-right text-xs font-bold">
@@ -138,13 +138,13 @@ export function GrafikAktivitas({ data }: { data: BarisAktivitas[] }) {
                   {aktif ? (
                     <div className="pointer-events-none absolute inset-x-0 bottom-full z-10 mb-2 flex justify-center">
                       <div className="kotak kotak-tegas bayang-pixel-kecil w-max min-w-32 space-y-1.5 p-2.5 text-left">
-                        <p className="pixel text-[9px] uppercase text-teks">
+                        <p className="pixel-sm uppercase text-teks">
                           {d.hari}
                         </p>
                         {SERI.map((s) => (
                           <p
                             key={s.kunci}
-                            className="flex items-center gap-2 whitespace-nowrap text-[11px] text-redup"
+                            className="flex items-center gap-2 whitespace-nowrap text-xs text-redup"
                           >
                             <span aria-hidden className={cn("size-2 shrink-0", s.warna)} />
                             {s.label}
@@ -160,7 +160,7 @@ export function GrafikAktivitas({ data }: { data: BarisAktivitas[] }) {
                   {/* Label langsung di atas batang, jadi angka tidak bergantung warna */}
                   <p
                     className={cn(
-                      "angka mb-1.5 text-center text-[11px] tabular-nums",
+                      "angka mb-1.5 text-center text-xs tabular-nums",
                       aktif ? "font-bold text-teks" : "text-redup",
                     )}
                   >
@@ -184,7 +184,7 @@ export function GrafikAktivitas({ data }: { data: BarisAktivitas[] }) {
                       style={{ height: `${tinggi_ai}%` }}
                     />
                   </div>
-                  <p className="pixel mt-2 text-center text-[8px] uppercase text-redup">
+                  <p className="pixel-sm mt-2 text-center uppercase text-redup">
                     {d.hari}
                   </p>
                 </div>

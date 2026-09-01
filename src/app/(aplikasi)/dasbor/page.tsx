@@ -137,7 +137,7 @@ export default function Dasbor() {
                       href={l.ke}
                       className="fokus-pixel flex items-center gap-3 px-4 py-3 text-xs hover:bg-permukaan-2"
                     >
-                      <span className="pixel grid size-6 shrink-0 place-items-center border-2 border-garis text-[9px] text-redup">
+                      <span className="pixel-sm grid size-6 shrink-0 place-items-center border-2 border-garis text-redup">
                         {i + 1}
                       </span>
                       <span className="flex-1 text-teks">{l.label}</span>

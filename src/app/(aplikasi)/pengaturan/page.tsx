@@ -122,7 +122,7 @@ export default function HalamanPengaturan() {
           <ul className="divide-y-2 divide-[var(--garis)]">
             {ATURAN_ESKALASI.map((a, i) => (
               <li key={a} className="flex items-start gap-3 px-4 py-3">
-                <span className="pixel grid size-6 shrink-0 place-items-center border-2 border-garis text-[9px] text-redup">
+                <span className="pixel-sm grid size-6 shrink-0 place-items-center border-2 border-garis text-redup">
                   {i + 1}
                 </span>
                 <p className="flex-1 text-xs leading-relaxed text-teks">{a}</p>

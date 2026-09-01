@@ -34,7 +34,7 @@ export function Th({
   return (
     <th
       className={cn(
-        "pixel whitespace-nowrap px-4 py-3 text-[9px] font-normal uppercase text-redup",
+        "pixel-sm whitespace-nowrap px-4 py-3 font-normal uppercase text-redup",
         className,
       )}
       {...props}

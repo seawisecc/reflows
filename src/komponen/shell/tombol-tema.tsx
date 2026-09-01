@@ -60,7 +60,7 @@ export function TombolTema() {
       onClick={ganti}
       title={`Tema ${LABEL_TEMA[tema]}, klik untuk ganti`}
       aria-label={`Ganti ke tema ${LABEL_TEMA[lawan]}`}
-      className="pixel fokus-pixel tekan bayang-pixel-kecil inline-flex h-9 items-center gap-2 border-2 border-garis-tegas bg-permukaan px-3 text-[9px] uppercase text-teks"
+      className="pixel-sm fokus-pixel tekan bayang-pixel-kecil inline-flex h-9 items-center gap-2 border-2 border-garis-tegas bg-permukaan px-3 uppercase text-teks"
     >
       {gelap ? (
         <Moon className="size-3.5 text-aksen-tinta" />

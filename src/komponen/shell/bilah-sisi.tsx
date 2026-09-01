@@ -17,13 +17,13 @@ function Merek() {
         aria-hidden
         className="grid size-8 shrink-0 place-items-center border-2 border-aksen bg-aksen text-aksen-teks"
       >
-        <span className="pixel text-[11px] leading-none">R</span>
+        <span className="pixel-lg">R</span>
       </span>
       <span className="min-w-0">
-        <span className="pixel block text-[12px] uppercase leading-none text-teks">
+        <span className="pixel-lg block uppercase text-teks">
           Reflows
         </span>
-        <span className="mt-1.5 block truncate text-[10px] text-redup">
+        <span className="mt-1.5 block truncate text-xs text-redup">
           Seawise Studio
         </span>
       </span>
@@ -38,7 +38,7 @@ function DaftarNav({ onPilih }: { onPilih?: () => void }) {
     <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
       {NAVIGASI.map((grup) => (
         <div key={grup.judul}>
-          <p className="pixel px-2 pb-2 text-[8px] uppercase text-redup/70">
+          <p className="pixel-sm px-2 pb-2 uppercase text-redup/70">
             {grup.judul}
           </p>
           <ul className="space-y-1">
@@ -67,7 +67,7 @@ function DaftarNav({ onPilih }: { onPilih?: () => void }) {
                     />
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.nanti ? (
-                      <span className="pixel shrink-0 border-2 border-garis px-1.5 py-0.5 text-[7px] uppercase text-redup">
+                      <span className="pixel-sm shrink-0 border-2 border-garis px-1.5 py-0.5 uppercase text-redup">
                         {item.nanti}
                       </span>
                     ) : null}
@@ -85,8 +85,8 @@ function DaftarNav({ onPilih }: { onPilih?: () => void }) {
 function KakiSisi() {
   return (
     <div className="border-t-2 border-garis px-4 py-3">
-      <p className="pixel text-[8px] uppercase text-redup">Fase 0 | Fondasi</p>
-      <p className="mt-1.5 text-[10px] leading-relaxed text-redup">
+      <p className="pixel-sm uppercase text-redup">Fase 0 | Fondasi</p>
+      <p className="mt-1.5 text-xs leading-relaxed text-redup">
         Data di layar masih contoh. Gateway belum tersambung.
       </p>
     </div>

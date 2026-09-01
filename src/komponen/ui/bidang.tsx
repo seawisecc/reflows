@@ -10,7 +10,7 @@ export function Label({
 }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
-      className={cn("pixel block text-[9px] uppercase text-redup", className)}
+      className={cn("pixel-sm block uppercase text-redup", className)}
       {...props}
     />
   );

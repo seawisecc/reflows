@@ -12,10 +12,12 @@ const VARIAN: Record<Varian, string> = {
   bahaya: "bg-gagal-tinta text-gagal-teks border-gagal-tinta",
 };
 
+// Ukuran font ikut skala pixel, bukan angka lepas, supaya labelnya tetap
+// tajam. Tinggi tombol dibuat kelipatan 8 dengan alasan yang sama.
 const UKURAN: Record<Ukuran, string> = {
-  kecil: "h-8 px-3 text-[10px] gap-1.5",
-  sedang: "h-10 px-4 text-[11px] gap-2",
-  besar: "h-12 px-6 text-xs gap-2.5",
+  kecil: "pixel-sm h-8 px-3 gap-1.5",
+  sedang: "pixel-sm h-10 px-4 gap-2",
+  besar: "pixel-lg h-12 px-6 gap-2.5",
 };
 
 export interface PropsTombol
@@ -33,7 +35,7 @@ export const Tombol = React.forwardRef<HTMLButtonElement, PropsTombol>(
       <button
         ref={ref}
         className={cn(
-          "pixel fokus-pixel tekan inline-flex select-none items-center justify-center border-2 uppercase",
+          "fokus-pixel tekan inline-flex select-none items-center justify-center border-2 uppercase",
           "disabled:pointer-events-none disabled:opacity-40",
           varian !== "hantu" && "bayang-pixel-kecil",
           VARIAN[varian],
