@@ -1,9 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Bot, Search, Send, TriangleAlert, User } from "lucide-react";
-import { kirim_balasan, ubah_status, type KeadaanKirim } from "@/app/(aplikasi)/percakapan/aksi";
-import type { Percakapan, StatusPercakapan } from "@/tipe";
+import { Bot, Check, Search, Send, Trash2, TriangleAlert, User } from "lucide-react";
+import {
+  buang_draf,
+  kirim_balasan,
+  setujui_draf,
+  ubah_status,
+  type KeadaanKirim,
+} from "@/app/(aplikasi)/percakapan/aksi";
+import type { Percakapan, Pesan, StatusPercakapan } from "@/tipe";
 import { cn, jam, waktu_relatif } from "@/lib/utils";
 import { Lencana, TitikStatus, type NadaLencana } from "@/komponen/ui/lencana";
 import { Bidang } from "@/komponen/ui/bidang";
@@ -95,6 +101,66 @@ function Pengarang({
         </p>
       )}
     </form>
+  );
+}
+
+/**
+ * Draf yang disusun AI tapi belum dikirim.
+ *
+ * Ditampilkan berbeda dari pesan sungguhan, dengan garis putus dan tanpa
+ * warna gelembung, supaya tidak pernah tertukar dengan sesuatu yang sudah
+ * sampai ke client.
+ */
+function KartuDraf({ pesan }: { pesan: Pesan }) {
+  const [menunggu, mulai] = React.useTransition();
+  const [galat, setGalat] = React.useState<string | null>(null);
+
+  return (
+    <li className="flex flex-col items-end gap-1.5">
+      <div className="flex items-center gap-2">
+        <Bot className="size-3.5 text-tunggu-tinta" />
+        <span className="pixel-sm uppercase text-tunggu-tinta">
+          Draf AI, belum terkirim
+        </span>
+      </div>
+      <div className="max-w-[42rem] border-2 border-dashed border-tunggu-tinta bg-permukaan-2 px-3 py-2.5 text-sm leading-relaxed text-teks">
+        {pesan.isi}
+      </div>
+      {galat ? (
+        <p role="alert" className="text-xs text-gagal-tinta">
+          {galat}
+        </p>
+      ) : null}
+      <div className="flex gap-2">
+        <Tombol
+          ukuran="kecil"
+          disabled={menunggu}
+          onClick={() =>
+            mulai(async () => {
+              const h = await setujui_draf(pesan.id);
+              setGalat(h.galat);
+            })
+          }
+        >
+          <Check className="size-3.5" />
+          {menunggu ? "Mengirim" : "Setujui dan kirim"}
+        </Tombol>
+        <Tombol
+          varian="hantu"
+          ukuran="kecil"
+          disabled={menunggu}
+          onClick={() =>
+            mulai(async () => {
+              const h = await buang_draf(pesan.id);
+              setGalat(h.galat);
+            })
+          }
+        >
+          <Trash2 className="size-3.5" />
+          Buang
+        </Tombol>
+      </div>
+    </li>
   );
 }
 
@@ -283,6 +349,9 @@ export function Inbox({
 
             <ol className="flex-1 space-y-4 overflow-y-auto p-4">
               {aktif.pesan.map((m) => {
+                if (m.arah === "keluar" && m.status_kirim === "antre") {
+                  return <KartuDraf key={m.id} pesan={m} />;
+                }
                 const dari_kita = m.arah === "keluar";
                 return (
                   <li

@@ -19,6 +19,7 @@ export const TENANT_UJI: KonteksTenant = {
   tenant_id: "tenant-seawise",
   nomor_wa: "6281338291000",
   mode_balas: "hybrid",
+  ambang_keyakinan: 0.85,
   jam_mulai: "08:00",
   jam_selesai: "20:00",
   zona_waktu: "Asia/Makassar",

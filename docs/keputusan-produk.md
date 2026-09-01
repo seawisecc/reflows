@@ -148,7 +148,7 @@ angka langsung di atas batang, dan tombol untuk melihat versi tabelnya.
 |---|---|---|
 | 0 | Fondasi, skema, RLS, design system dua tema, kerangka dasbor | Selesai |
 | 1 | Adapter gateway, webhook, autentikasi, inbox nyata, kirim manual | Selesai |
-| 2 | Mesin AI, knowledge base, eskalasi | Impor materi selesai, mesin balasan belum |
+| 2 | Mesin AI, knowledge base, eskalasi | Selesai |
 | 3 | Outbound: kontak, kampanye, sequence, anti-ban | Belum |
 | 4 | Invoice PDF dan pengirimannya lewat WhatsApp | Belum |
 | 5 | Dasbor pemilik, monitoring lintas tenant, billing | Belum |

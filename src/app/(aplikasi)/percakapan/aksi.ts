@@ -140,6 +140,83 @@ export async function ubah_status(
   return { galat: null };
 }
 
+/**
+ * Menyetujui draf yang disusun AI lalu mengirimkannya.
+ *
+ * Draf disimpan sebagai pesan keluar berstatus antre. Isinya sengaja diambil
+ * ulang dari database, bukan dari yang dikirim browser, supaya teks yang
+ * terkirim persis yang tersimpan dan tidak bisa diganti dari sisi klien.
+ */
+export async function setujui_draf(
+  pesan_id: string,
+): Promise<{ galat: string | null }> {
+  const db = await klien_server();
+  const { data: draf } = await db
+    .from("pesan")
+    .select("id, tenant_id, percakapan_id, isi, arah, pengirim, status_kirim")
+    .eq("id", pesan_id)
+    .maybeSingle();
+
+  if (!draf) return { galat: "Draf tidak ditemukan." };
+  if (draf.arah !== "keluar" || draf.status_kirim !== "antre") {
+    return { galat: "Pesan itu bukan draf yang menunggu persetujuan." };
+  }
+
+  const percakapan = await percakapan_milik_saya(draf.percakapan_id as string);
+  if (!percakapan) return { galat: "Percakapan tidak ditemukan." };
+  if (percakapan.opt_out_at) {
+    return { galat: "Kontak ini sudah minta berhenti dihubungi." };
+  }
+
+  const layanan = klien_layanan();
+  const kredensial = await kredensial_gateway(layanan, percakapan.tenant_id);
+  const gateway = pilih_gateway({
+    gateway: kredensial?.gateway ?? "mock",
+    token: kredensial?.token ?? null,
+  });
+  const hasil = await gateway.kirim({
+    ke: percakapan.nomor_wa,
+    isi: draf.isi as string,
+  });
+
+  await layanan
+    .from("pesan")
+    .update({
+      status_kirim: hasil.ok ? "terkirim" : "gagal",
+      wa_message_id: hasil.ok ? hasil.wa_message_id : null,
+      // Draf yang sudah disetujui manusia dicatat sebagai kiriman manusia,
+      // karena manusia yang memutuskan pesan itu boleh keluar.
+      pengirim: "manusia",
+    })
+    .eq("id", pesan_id);
+
+  await layanan
+    .from("percakapan")
+    .update({ belum_dibaca: 0, pesan_terakhir_at: new Date().toISOString() })
+    .eq("id", percakapan.id);
+
+  revalidatePath("/percakapan");
+  revalidatePath("/dasbor");
+  return hasil.ok
+    ? { galat: null }
+    : { galat: `Gagal terkirim: ${hasil.alasan}` };
+}
+
+/** Membuang draf yang tidak jadi dipakai. */
+export async function buang_draf(
+  pesan_id: string,
+): Promise<{ galat: string | null }> {
+  const db = await klien_server();
+  const { error } = await db
+    .from("pesan")
+    .delete()
+    .eq("id", pesan_id)
+    .eq("status_kirim", "antre");
+  if (error) return { galat: `Gagal membuang draf: ${error.message}` };
+  revalidatePath("/percakapan");
+  return { galat: null };
+}
+
 /** Menandai percakapan sudah dibaca saat dibuka di inbox. */
 export async function tandai_dibaca(percakapan_id: string) {
   const db = await klien_server();

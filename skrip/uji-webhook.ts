@@ -11,7 +11,16 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { muat_env } from "./env-lokal";
 
 const ALAMAT = process.env.ALAMAT_UJI ?? "http://localhost:3111";
-const NOMOR_UJI = "628999000111";
+/**
+ * Nomor kontak uji.
+ *
+ * Memakai kode negara 999, yang dicadangkan ITU untuk pengujian dan tidak
+ * pernah dialokasikan ke operator mana pun. Ini penting sejak mesin balasan
+ * otomatis menyala: kalau nomornya memakai prefix Indonesia yang sungguhan,
+ * setiap kali uji dijalankan ada orang asing yang menerima pesan dari nomor
+ * bisnis Seawise.
+ */
+const NOMOR_UJI = "9991234567";
 
 /** Diisi dari pengaturan tenant di awal main(), bukan dikarang. */
 let nomor_perangkat = "";
@@ -182,11 +191,14 @@ async function main() {
   const ulang = await kirim_webhook(rahasia, m1);
   periksa("kiriman ulang dikenali dobel", ulang.badan?.dobel === true, JSON.stringify(ulang.badan));
 
-  const { count: jumlah_pesan } = await db
+  // Dihitung khusus pesan masuk. Sejak mesin balasan menyala, percakapan
+  // juga berisi pesan keluar dari AI, dan itu bukan urusan uji anti-dobel.
+  const { count: jumlah_masuk } = await db
     .from("pesan")
     .select("id", { count: "exact", head: true })
-    .eq("percakapan_id", percakapan!.id);
-  periksa("pesan tetap satu, tidak dobel", jumlah_pesan === 1, `ada ${jumlah_pesan}`);
+    .eq("percakapan_id", percakapan!.id)
+    .eq("arah", "masuk");
+  periksa("pesan masuk tetap satu, tidak dobel", jumlah_masuk === 1, `ada ${jumlah_masuk}`);
 
   const { data: setelah_ulang } = await db
     .from("percakapan")
@@ -197,6 +209,41 @@ async function main() {
     "hitungan belum dibaca tidak ikut naik saat dobel",
     setelah_ulang?.belum_dibaca === 1,
     `nilai ${setelah_ulang?.belum_dibaca}`,
+  );
+
+  console.log("\nBalasan otomatis");
+  const balas = await kirim_webhook(
+    rahasia,
+    muatan({ message: "Kalau bikin website toko online berapa ya?" }),
+  );
+  periksa(
+    "AI mengambil keputusan atas pesan yang masih dipegangnya",
+    typeof balas.badan?.balasan_ai === "string",
+    `balasan_ai = ${JSON.stringify(balas.badan?.balasan_ai)}`,
+  );
+  const { data: pesan_ai } = await db
+    .from("pesan")
+    .select("isi, pengirim, status_kirim")
+    .eq("percakapan_id", percakapan!.id)
+    .eq("pengirim", "ai");
+  periksa(
+    "balasan AI tercatat di percakapan",
+    (pesan_ai?.length ?? 0) > 0,
+    `tindakan ${JSON.stringify(balas.badan?.balasan_ai)}`,
+  );
+  if (pesan_ai?.length) {
+    const isi = String(pesan_ai[0]!.isi);
+    console.log(`         AI menjawab: "${isi.slice(0, 80)}..."`);
+    periksa(
+      "balasan menyebut harga dari materi admin, bukan angka karangan",
+      /9\.?500\.?000|9,5 juta/i.test(isi) || /toko online/i.test(isi),
+      `isi: ${isi.slice(0, 120)}`,
+    );
+  }
+  periksa(
+    "pengujian tidak pernah menyasar nomor Indonesia sungguhan",
+    NOMOR_UJI.startsWith("999"),
+    `nomor uji ${NOMOR_UJI} di luar rentang cadangan ITU`,
   );
 
   console.log("\nEskalasi");
@@ -219,6 +266,17 @@ async function main() {
     "alasan eskalasi tersimpan di database",
     String(setelah_eskalasi?.alasan_eskalasi ?? "").includes("komplain"),
     String(setelah_eskalasi?.alasan_eskalasi),
+  );
+
+  console.log("\nAI berhenti setelah dieskalasi");
+  const setelah = await kirim_webhook(
+    rahasia,
+    muatan({ message: "Halo masih di sana?" }),
+  );
+  periksa(
+    "AI tidak menyela percakapan yang sudah dipegang manusia",
+    setelah.badan?.balasan_ai === null,
+    `balasan_ai = ${JSON.stringify(setelah.badan?.balasan_ai)}`,
   );
 
   console.log("\nPermintaan berhenti");

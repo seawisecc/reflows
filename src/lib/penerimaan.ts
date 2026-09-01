@@ -10,6 +10,7 @@ export type KonteksTenant = {
   tenant_id: string;
   nomor_wa: string | null;
   mode_balas: ModeBalas;
+  ambang_keyakinan: number;
   jam_mulai: string;
   jam_selesai: string;
   zona_waktu: string;
@@ -65,6 +66,9 @@ export type HasilTerima =
       pesan_id: string;
       tenant_id: string;
       percakapan_id: string;
+      /** Dibawa keluar supaya pemanggil tidak perlu query pengaturan lagi. */
+      mode_balas: ModeBalas;
+      ambang_keyakinan: number;
       status: StatusPercakapan;
       alasan_eskalasi: string | null;
       opt_out: boolean;
@@ -134,6 +138,8 @@ export async function terima_pesan(
       pesan_id,
       tenant_id: tenant.tenant_id,
       percakapan_id: percakapan.id,
+      mode_balas: tenant.mode_balas,
+      ambang_keyakinan: tenant.ambang_keyakinan,
       status: "selesai",
       alasan_eskalasi: null,
       opt_out: true,
@@ -179,6 +185,8 @@ export async function terima_pesan(
     pesan_id,
     tenant_id: tenant.tenant_id,
     percakapan_id: percakapan.id,
+    mode_balas: tenant.mode_balas,
+    ambang_keyakinan: tenant.ambang_keyakinan,
     status,
     alasan_eskalasi: alasan,
     opt_out: false,

@@ -25,13 +25,16 @@ export function gudang_supabase(db: SupabaseClient): Gudang {
       const { data, error } = await db
         .from("pengaturan_tenant")
         .select(
-          "tenant_id, nomor_wa, mode_balas, jam_mulai, jam_selesai, zona_waktu, pesan_di_luar_jam",
+          "tenant_id, nomor_wa, mode_balas, ambang_keyakinan, jam_mulai, jam_selesai, zona_waktu, pesan_di_luar_jam",
         )
         .eq("rahasia_webhook", rahasia)
         .maybeSingle();
 
       if (error || !data) return null;
-      return data as KonteksTenant;
+      return {
+        ...data,
+        ambang_keyakinan: Number(data.ambang_keyakinan),
+      } as KonteksTenant;
     },
 
     async pesan_sudah_ada(tenant_id, wa_message_id) {

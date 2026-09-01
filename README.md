@@ -10,10 +10,27 @@ Latar belakang dan alasan setiap pilihan ada di
 
 ## Status
 
-**Fase 1, jalur masuk.** Database Supabase sudah tersambung, autentikasi dan
-Row Level Security jalan, dan webhook WhatsApp sudah bisa menerima pesan
-sungguhan. Gateway masih memakai penyedia tiruan, jadi belum ada pesan yang
-benar-benar terkirim keluar.
+**Fase 2, mesin balasan.** Jalurnya sudah utuh dari ujung ke ujung: pesan
+WhatsApp masuk lewat Fonnte, AI menyusun balasan dari materi admin tenant,
+lalu mengirimkannya kembali. Yang belum digarap: kampanye keluar (Fase 3)
+dan invoice (Fase 4).
+
+### Cara mesin balasan memutuskan
+
+```
+pesan masuk
+  minta berhenti?        -> tutup percakapan, tidak dibalas apa pun
+  kena aturan eskalasi?  -> lempar ke manusia, AI tidak dipanggil
+  percakapan dipegang manusia? -> AI diam
+  selain itu             -> AI menyusun balasan
+                              butuh_manusia    -> eskalasi
+                              mode draf        -> simpan draf, tunggu persetujuan
+                              keyakinan cukup  -> kirim
+                              keyakinan kurang -> simpan draf
+```
+
+Draf muncul di inbox dengan garis putus dan tombol Setujui, jadi tidak
+pernah tertukar dengan pesan yang sudah sampai ke client.
 
 ## Menjalankan
 
@@ -187,6 +204,17 @@ di localhost, Fonnte tidak akan pernah bisa mengirim pesan masuk.
 Site URL di Supabase masih `http://localhost:3000`. Perlu diganti ke domain
 produksi supaya tautan di email pemulihan sandi tidak mengarah ke komputer
 sendiri.
+
+## Biaya AI
+
+Diukur dengan materi admin Seawise yang sungguhan, bukan diperkirakan:
+sekitar **$0,002 per balasan** dengan Haiku 4.5, atau kira-kira **$2 untuk
+seribu balasan sebulan**.
+
+Instruksi tetap ditandai untuk prompt caching, tapi materi admin Seawise
+sekarang baru sekitar 700 token, di bawah ambang minimum cache Haiku. Jadi
+cache belum pernah kena. Begitu materinya bertambah banyak, penghematannya
+mulai berlaku sendiri tanpa perubahan kode.
 
 ## Impor materi
 

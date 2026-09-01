@@ -62,3 +62,9 @@ test("nomor_sama membandingkan setelah dinormalkan", () => {
 test("tampilan nomor enak dibaca", () => {
   assert.equal(tampilkan_nomor("6281338291044"), "+62 813-3829-1044");
 });
+
+test("kode negara 999 yang dicadangkan ITU tetap terbaca sebagai nomor", () => {
+  // Dipakai skrip uji supaya balasan otomatis tidak pernah nyasar ke orang
+  // sungguhan. Harus lolos normalisasi, tapi tidak akan bisa dikirimi.
+  assert.equal(normalkan_nomor("9991234567"), "9991234567");
+});

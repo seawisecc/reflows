@@ -7,10 +7,18 @@ import {
 } from "@/lib/gudang-supabase";
 import { terima_pesan } from "@/lib/penerimaan";
 import { baca_webhook_fonnte, pilih_gateway } from "@/lib/gateway";
+import { balas_otomatis } from "@/lib/balas-otomatis";
 
 /** Webhook harus jalan di Node, bukan Edge, karena enkripsi token pakai node:crypto. */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * Menyusun balasan memanggil Claude lalu gateway, jadi butuh waktu lebih dari
+ * batas bawaan. Fonnte yang kehabisan sabar akan mengirim ulang, dan itu tidak
+ * merusak karena anti-dobel menangkapnya, tapi lebih baik tidak terjadi.
+ */
+export const maxDuration = 60;
 
 /** Muatan webhook yang wajar jauh di bawah ini. Sisanya ditolak. */
 const BATAS_BADAN_BYTE = 64 * 1024;
@@ -128,11 +136,34 @@ export async function POST(
     });
   }
 
+  // Balasan otomatis hanya untuk percakapan yang masih dipegang AI. Yang
+  // sudah dieskalasi aturan, sudah ditangani manusia, atau sudah minta
+  // berhenti, tidak boleh disela mesin.
+  let balasan_ai: string | null = null;
+  if (hasil.status === "ai" && !hasil.opt_out) {
+    try {
+      const jawab = await balas_otomatis(db, {
+        tenant_id: hasil.tenant_id,
+        percakapan_id: hasil.percakapan_id,
+        nomor_kontak: pesan.nomor_pengirim,
+        mode_balas: hasil.mode_balas,
+        ambang_keyakinan: hasil.ambang_keyakinan,
+      });
+      balasan_ai = jawab.tindakan;
+    } catch {
+      // Pesan clientnya sudah aman tersimpan. Kegagalan menyusun balasan
+      // tidak boleh membuat webhook menjawab galat, karena gateway akan
+      // mengirim ulang terus-menerus untuk pesan yang sebenarnya sudah masuk.
+      balasan_ai = "gagal";
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     status: hasil.status,
     opt_out: hasil.opt_out,
     balasan_terkirim,
+    balasan_ai,
   });
 }
 
