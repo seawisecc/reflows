@@ -2,6 +2,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { SkemaEkstraksi, type HasilEkstraksi, type Sumber } from "./jenis";
+import { MODEL, model_sah, type NamaModel } from "@/lib/ai/model";
 
 /**
  * Menarik materi admin dari dokumen jadi entri terstruktur.
@@ -17,7 +18,24 @@ import { SkemaEkstraksi, type HasilEkstraksi, type Sumber } from "./jenis";
  * diulang-ulang ke setiap calon client sesudahnya.
  */
 
-const MODEL = "claude-opus-5";
+/**
+ * Model pembaca dokumen.
+ *
+ * Diuji dengan daftar harga tujuh baris berformat Indonesia: Haiku 4.5 dan
+ * Opus 5 sama-sama benar tujuh dari tujuh, dan sama-sama menandai satu harga
+ * yang cuma tertulis "Hubungi kami" sebagai kosong. Bedanya Opus menarik
+ * lebih banyak catatan konteks, dan biayanya tujuh kali lipat.
+ *
+ * Karena itu bawaannya Haiku. Kalau suatu saat ada PDF berantakan yang
+ * hasilnya meleset, satu dokumen bisa dibaca ulang dengan model lebih teliti
+ * lewat MODEL_EKSTRAKSI di variabel lingkungan, dan selisihnya cuma dua sen.
+ */
+const MODEL_BAWAAN: NamaModel = "claude-haiku-4-5";
+
+function model_terpakai(): NamaModel {
+  const dari_env = process.env.MODEL_EKSTRAKSI;
+  return model_sah(dari_env) ? dari_env : MODEL_BAWAAN;
+}
 
 const INSTRUKSI = `Kamu membantu bisnis kecil di Indonesia merapikan materi admin
 mereka menjadi daftar layanan dan daftar pertanyaan yang sering ditanyakan.
@@ -79,23 +97,38 @@ export async function ekstrak_materi(sumber: Sumber): Promise<HasilImpor> {
   }
 
   const client = new Anthropic();
+  const model = model_terpakai();
+
+  // Haiku 4.5 menolak adaptive thinking dan effort dengan galat 400, jadi
+  // parameter itu cuma dikirim ke model yang memang mendukungnya.
+  const penalaran = MODEL[model].penalaran_adaptif
+    ? { thinking: { type: "adaptive" as const } }
+    : {};
+  const effort = MODEL[model].penalaran_adaptif
+    ? { effort: "medium" as const }
+    : {};
+  const cadangan = MODEL[model].fallback_penolakan
+    ? {
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default" as const,
+      }
+    : {};
 
   let jawaban;
   try {
     jawaban = await client.beta.messages.parse({
-      model: MODEL,
+      model,
       max_tokens: 16000,
       system: INSTRUKSI,
-      thinking: { type: "adaptive" },
+      ...penalaran,
       output_config: {
         format: zodOutputFormat(SkemaEkstraksi),
-        // Ekstraksi tabel harga butuh ketelitian, tapi bukan penalaran berat.
-        effort: "medium",
+        ...effort,
       },
       // Kalau permintaan ditolak penyaring keamanan, layanan ini mengulang
-      // sendiri di model cadangan alih-alih gagal di depan pengguna.
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
+      // sendiri di model cadangan alih-alih gagal di depan pengguna. Model
+      // keluarga lama tidak mendukungnya, jadi tidak dikirim ke sana.
+      ...cadangan,
       messages: [{ role: "user", content: isi_pesan(sumber) }],
     });
   } catch (e) {
