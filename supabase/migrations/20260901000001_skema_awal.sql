@@ -5,7 +5,8 @@
 -- Fase 0 baru melayani satu tenant.
 -- =========================================================
 
-create extension if not exists "pgcrypto";
+-- gen_random_uuid() sudah jadi bagian inti PostgreSQL sejak versi 13, jadi
+-- pgcrypto tidak perlu dipasang.
 
 -- ---------- Tipe enum ----------
 create type peran_pengguna as enum ('pemilik', 'admin', 'staf');
@@ -74,6 +75,13 @@ create table public.pengaturan_tenant (
   -- tidak pernah ikut terkirim ke browser.
   gateway_token_terenkripsi text,
   nomor_wa text,
+  -- Fonnte tidak menandatangani webhooknya sama sekali, jadi keaslian
+  -- permintaan tidak bisa dibuktikan dari isinya. Rahasia ini ditaruh di
+  -- jalur URL webhook, dan hanya tenant pemiliknya yang tahu.
+  rahasia_webhook text not null unique default (
+    replace(gen_random_uuid()::text, '-', '') ||
+    replace(gen_random_uuid()::text, '-', '')
+  ),
   mode_balas mode_balas not null default 'hybrid',
   ambang_keyakinan numeric(3, 2) not null default 0.85
     check (ambang_keyakinan between 0.50 and 1.00),
@@ -129,6 +137,10 @@ create table public.percakapan (
   alasan_eskalasi text,
   belum_dibaca integer not null default 0 check (belum_dibaca >= 0),
   pesan_terakhir_at timestamptz not null default now(),
+  -- Kapan terakhir kali pemberitahuan di luar jam kerja dikirim ke utas ini.
+  -- Tanpa penanda ini, kontak yang mengirim lima pesan jam sebelas malam
+  -- akan menerima lima kali pesan otomatis yang sama.
+  luar_jam_dibalas_at timestamptz,
   dibuat_at timestamptz not null default now(),
   unique (tenant_id, kontak_id)
 );
@@ -232,6 +244,29 @@ begin
   end loop;
 end $$;
 
+-- =========================================================
+-- Hak akses
+-- Supabase memang memberi hak ke authenticated lewat default privileges,
+-- tapi ditulis ulang di sini supaya skema ini tetap benar kalau dijalankan
+-- di Postgres biasa, dan supaya terbaca siapa boleh apa.
+-- =========================================================
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+
+-- anon dipakai sebelum login. Tidak ada satu pun tabel yang boleh dilihatnya.
+revoke all on all tables in schema public from anon;
+
 -- Token gateway tidak boleh terbaca lewat API publik dalam bentuk apa pun.
-revoke select (gateway_token_terenkripsi) on public.pengaturan_tenant
-  from anon, authenticated;
+-- Mencabut satu kolom saja tidak cukup: hak di tingkat tabel tetap menang,
+-- jadi haknya dicabut penuh lalu diberikan lagi per kolom tanpa token.
+revoke select, update on public.pengaturan_tenant from authenticated;
+grant select (
+  tenant_id, gateway, nomor_wa, mode_balas, ambang_keyakinan,
+  jam_mulai, jam_selesai, zona_waktu, pesan_di_luar_jam,
+  kuota_pesan_harian, diubah_at
+) on public.pengaturan_tenant to authenticated;
+grant update (
+  gateway, nomor_wa, mode_balas, ambang_keyakinan,
+  jam_mulai, jam_selesai, zona_waktu, pesan_di_luar_jam, kuota_pesan_harian
+) on public.pengaturan_tenant to authenticated;

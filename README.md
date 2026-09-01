@@ -39,7 +39,7 @@ src/komponen/ui/      Komponen pixel: tombol, kartu, tabel, lencana, grafik
 src/komponen/shell/   Bilah sisi, bilah atas, tombol tema
 src/lib/              Utilitas, tema, klien Supabase, data contoh
 src/tipe/             Tipe domain
-supabase/migrasi/     Skema database dan kebijakan RLS
+supabase/migrations/     Skema database dan kebijakan RLS
 ```
 
 ## Aturan font pixel
@@ -79,7 +79,7 @@ Menambah tema baru cukup menambahkan satu blok `[data-tema="..."]` di
 
 ## Database
 
-`supabase/migrasi/0001_skema_awal.sql` berisi skema lengkap beserta Row Level
+`supabase/migrations/20260901000001_skema_awal.sql` berisi skema lengkap beserta Row Level
 Security. Setiap tabel bisnis membawa `tenant_id`, dan seluruh kebijakan
 bertumpu pada fungsi `public.tenant_saya()`.
 
