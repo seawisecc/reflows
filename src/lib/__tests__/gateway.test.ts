@@ -263,3 +263,31 @@ test("pesan berbeda menghasilkan sidik berbeda", () => {
 test("inboxid tetap dipakai kalau gateway mengirimkannya", () => {
   assert.equal(baca_webhook_fonnte(MUATAN_WAJAR)?.wa_message_id, "80367170");
 });
+
+test("inboxid nol diperlakukan sebagai kosong, bukan sebagai id", () => {
+  // Fonnte mengirim inboxid 0 saat fitur Inbox dimatikan. Kalau nilai itu
+  // dipakai apa adanya, semua pesan punya id sama dan pesan kedua dan
+  // seterusnya dibuang karena dikira kiriman ulang.
+  for (const nol of [0, "0", -1, "-1"]) {
+    const hasil = baca_webhook_fonnte({ ...MUATAN_WAJAR, inboxid: nol });
+    assert.ok(
+      hasil?.wa_message_id?.startsWith("sidik-"),
+      `inboxid ${JSON.stringify(nol)} seharusnya diabaikan, dapat ${hasil?.wa_message_id}`,
+    );
+  }
+});
+
+test("dua pesan berbeda dengan inboxid nol tetap punya id berbeda", () => {
+  const a = baca_webhook_fonnte({ ...MUATAN_WAJAR, inboxid: 0, message: "Halo" });
+  const b = baca_webhook_fonnte({
+    ...MUATAN_WAJAR,
+    inboxid: 0,
+    message: "Mau tanya harga",
+    timestamp: "1788228999",
+  });
+  assert.notEqual(
+    a?.wa_message_id,
+    b?.wa_message_id,
+    "kalau sama, pesan kedua client akan hilang tanpa jejak",
+  );
+});

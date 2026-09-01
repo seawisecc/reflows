@@ -39,6 +39,24 @@ type MuatanFonnte = {
   choices?: unknown;
 };
 
+/**
+ * Id pesan dari gateway, atau null kalau tidak berarti.
+ *
+ * Saat fitur Inbox dimatikan, Fonnte tetap mengirim field inboxid tapi
+ * isinya selalu 0. Kalau nilai itu diterima apa adanya, semua pesan punya
+ * id yang sama, dan karena id itu kunci anti-dobel, pesan kedua dan
+ * seterusnya akan dianggap kiriman ulang lalu dibuang tanpa jejak.
+ *
+ * Ketahuan dari pesan sungguhan yang pertama masuk, bukan dari dokumentasi.
+ */
+function id_gateway(nilai: unknown): string | null {
+  const t = teks(nilai);
+  if (t === null) return null;
+  // "0" dan "-1" adalah penanda kosong versi Fonnte, bukan id sungguhan.
+  if (t === "0" || t === "-1") return null;
+  return t;
+}
+
 function teks(nilai: unknown): string | null {
   if (typeof nilai === "string") {
     const bersih = nilai.trim();
@@ -104,7 +122,7 @@ export function baca_webhook_fonnte(muatan: unknown): PesanMasuk | null {
     isi: isi ?? "",
     nomor_perangkat: perangkat,
     wa_message_id:
-      teks(m.inboxid) ??
+      id_gateway(m.inboxid) ??
       sidik_pesan([perangkat, pengirim, stempel, isi, berkas]),
     waktu: waktu_dari(m.timestamp),
     lampiran: berkas
