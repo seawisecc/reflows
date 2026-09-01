@@ -107,7 +107,7 @@ angka langsung di atas batang, dan tombol untuk melihat versi tabelnya.
 | Fase | Isi | Status |
 |---|---|---|
 | 0 | Fondasi, skema, RLS, design system dua tema, kerangka dasbor | Selesai |
-| 1 | Adapter gateway, webhook, inbox nyata, kirim manual | Berikutnya |
+| 1 | Adapter gateway, webhook, autentikasi, inbox nyata | Sebagian besar selesai, sisa kirim manual |
 | 2 | Mesin AI, knowledge base, eskalasi | Belum |
 | 3 | Outbound: kontak, kampanye, sequence, anti-ban | Belum |
 | 4 | Invoice PDF dan pengirimannya lewat WhatsApp | Belum |

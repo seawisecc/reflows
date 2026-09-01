@@ -13,7 +13,11 @@
     "db:diff": "sh skrip/sb.sh db diff",
     "uji-skema": "tsx skrip/uji-skema.ts",
     "test": "tsx --test src/lib/__tests__/*.test.ts && tsx skrip/uji-skema.ts",
-    "periksa:produksi": "tsx skrip/periksa-produksi.ts"
+    "periksa:produksi": "tsx skrip/periksa-produksi.ts",
+    "siapkan-tenant": "tsx skrip/siapkan-tenant.ts",
+    "buat-pengguna": "tsx skrip/buat-pengguna.ts",
+    "uji-webhook": "tsx skrip/uji-webhook.ts",
+    "uji-auth": "tsx skrip/uji-auth.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

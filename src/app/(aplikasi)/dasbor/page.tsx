@@ -14,13 +14,24 @@ import { KartuStatistik, BarBlok } from "@/komponen/ui/statistik";
 import { Lencana, TitikStatus } from "@/komponen/ui/lencana";
 import { GrafikAktivitas } from "@/komponen/ui/grafik-aktivitas";
 import { Tombol } from "@/komponen/ui/tombol";
-import { AKTIVITAS_7_HARI, PERCAKAPAN, RINGKASAN } from "@/lib/contoh-data";
+import { AKTIVITAS_7_HARI, RINGKASAN } from "@/lib/contoh-data";
+import { ambil_percakapan, ambil_ringkasan } from "@/lib/data/percakapan";
 import { waktu_relatif } from "@/lib/utils";
 
 export const metadata = { title: "Ringkasan | Reflows" };
 
-export default function Dasbor() {
-  const perlu_perhatian = PERCAKAPAN.filter((p) => p.status === "manual");
+export const dynamic = "force-dynamic";
+
+export default async function Dasbor() {
+  const [{ daftar, sumber }, hitungan] = await Promise.all([
+    ambil_percakapan(),
+    ambil_ringkasan(),
+  ]);
+
+  // Angka nyata kalau database tersambung, angka contoh kalau belum.
+  // Sengaja tidak dicampur, supaya tidak ada layar yang setengah nyata.
+  const angka = hitungan ?? RINGKASAN;
+  const perlu_perhatian = daftar.filter((p) => p.status === "manual");
 
   return (
     <>
@@ -36,33 +47,33 @@ export default function Dasbor() {
         >
           <KartuStatistik
             label="Pesan masuk hari ini"
-            nilai={String(RINGKASAN.pesan_masuk_hari_ini)}
+            nilai={String(angka.pesan_masuk_hari_ini)}
             ikon={MessagesSquare}
             nada="netral"
-            catatan={`${RINGKASAN.kontak_baru_minggu_ini} kontak baru minggu ini`}
+            catatan={`${angka.kontak_baru_minggu_ini} kontak baru minggu ini`}
           />
           <KartuStatistik
             label="Dijawab AI sendiri"
-            nilai={String(RINGKASAN.dijawab_ai)}
-            satuan={`dari ${RINGKASAN.pesan_masuk_hari_ini}`}
+            nilai={String(angka.dijawab_ai)}
+            satuan={`dari ${angka.pesan_masuk_hari_ini}`}
             ikon={Bot}
             nada="sekunder"
             catatan="Kamu tidak perlu menyentuh percakapan ini"
           />
           <KartuStatistik
             label="Butuh kamu"
-            nilai={String(RINGKASAN.butuh_kamu)}
+            nilai={String(angka.butuh_kamu)}
             ikon={TriangleAlert}
             nada="gagal"
-            catatan={`${RINGKASAN.draf_menunggu} draf AI menunggu persetujuan`}
+            catatan="Percakapan yang AI serahkan ke kamu"
           />
           <KartuStatistik
             label="Rata-rata balas"
-            nilai={String(RINGKASAN.waktu_balas_rata_detik)}
+            nilai={sumber === "supabase" ? "0" : String(RINGKASAN.waktu_balas_rata_detik)}
             satuan="detik"
             ikon={Clock}
             nada="netral"
-            catatan="Dihitung sejak pesan masuk sampai balasan terkirim"
+            catatan="Terisi setelah mesin AI menyala di Fase 2"
           />
         </section>
 
@@ -83,10 +94,10 @@ export default function Dasbor() {
               />
               <div className="space-y-4 p-4">
                 <BarBlok
-                  nilai={RINGKASAN.pesan_terpakai_hari_ini}
+                  nilai={angka.pesan_masuk_hari_ini}
                   maks={RINGKASAN.kuota_pesan_harian}
                   nada="aksen"
-                  label={`${RINGKASAN.pesan_terpakai_hari_ini} dari ${RINGKASAN.kuota_pesan_harian} pesan`}
+                  label={`${angka.pesan_masuk_hari_ini} dari ${RINGKASAN.kuota_pesan_harian} pesan`}
                 />
                 <div className="pemisah-pixel" />
                 <dl className="space-y-3 text-xs">
@@ -162,6 +173,11 @@ export default function Dasbor() {
               </Link>
             }
           />
+          {perlu_perhatian.length === 0 ? (
+            <p className="px-4 py-8 text-center text-xs text-redup">
+              Tidak ada yang menunggu. Semua percakapan sedang aman.
+            </p>
+          ) : (
           <ul className="divide-y-2 divide-[var(--garis)]">
             {perlu_perhatian.map((p) => (
               <li key={p.id}>
@@ -188,6 +204,7 @@ export default function Dasbor() {
               </li>
             ))}
           </ul>
+          )}
         </Kartu>
       </main>
     </>

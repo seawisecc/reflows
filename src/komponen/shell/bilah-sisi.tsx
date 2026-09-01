@@ -3,11 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
+import { keluar } from "@/app/masuk/aksi";
 import { NAVIGASI } from "./navigasi";
 import { cn } from "@/lib/utils";
 
-function Merek() {
+function Merek({ nama_bisnis }: { nama_bisnis: string }) {
   return (
     <Link
       href="/dasbor"
@@ -24,7 +25,7 @@ function Merek() {
           Reflows
         </span>
         <span className="mt-1.5 block truncate text-xs text-redup">
-          Seawise Studio
+          {nama_bisnis}
         </span>
       </span>
     </Link>
@@ -82,18 +83,54 @@ function DaftarNav({ onPilih }: { onPilih?: () => void }) {
   );
 }
 
-function KakiSisi() {
+function KakiSisi({
+  nama_pengguna,
+  email,
+}: {
+  nama_pengguna: string | null;
+  email: string | null;
+}) {
+  if (!nama_pengguna) {
+    return (
+      <div className="border-t-2 border-garis px-4 py-3">
+        <p className="pixel-sm uppercase text-redup">Mode contoh</p>
+        <p className="mt-1.5 text-xs leading-relaxed text-redup">
+          Database belum tersambung, yang tampil data contoh.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="border-t-2 border-garis px-4 py-3">
-      <p className="pixel-sm uppercase text-redup">Fase 0 | Fondasi</p>
-      <p className="mt-1.5 text-xs leading-relaxed text-redup">
-        Data di layar masih contoh. Gateway belum tersambung.
-      </p>
+    <div className="space-y-2 border-t-2 border-garis px-3 py-3">
+      <div className="px-1">
+        <p className="truncate text-xs text-teks">{nama_pengguna}</p>
+        {email ? (
+          <p className="mt-1 truncate text-xs text-redup">{email}</p>
+        ) : null}
+      </div>
+      <form action={keluar}>
+        <button
+          type="submit"
+          className="fokus-pixel flex w-full items-center gap-2.5 border-2 border-transparent px-2.5 py-2 text-xs text-redup hover:border-garis hover:bg-permukaan-2 hover:text-teks"
+        >
+          <LogOut className="size-4 shrink-0" />
+          Keluar
+        </button>
+      </form>
     </div>
   );
 }
 
-export function BilahSisi() {
+export function BilahSisi({
+  nama_bisnis,
+  nama_pengguna,
+  email,
+}: {
+  nama_bisnis: string;
+  nama_pengguna: string | null;
+  email: string | null;
+}) {
   // Laci ditutup lewat onPilih di setiap tautan, bukan lewat efek yang
   // mengamati perubahan jalur. Hasilnya sama tapi tanpa render bertingkat.
   const [terbuka, setTerbuka] = React.useState(false);
@@ -102,9 +139,9 @@ export function BilahSisi() {
     <>
       {/* Sisi tetap di layar lebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r-2 border-garis bg-permukaan lg:flex">
-        <Merek />
+        <Merek nama_bisnis={nama_bisnis} />
         <DaftarNav />
-        <KakiSisi />
+        <KakiSisi nama_pengguna={nama_pengguna} email={email} />
       </aside>
 
       {/* Tombol laci di layar sempit */}
@@ -128,7 +165,7 @@ export function BilahSisi() {
           <div className="absolute inset-y-0 left-0 flex w-64 flex-col border-r-2 border-garis-tegas bg-permukaan">
             <div className="flex items-center justify-between border-b-2 border-garis pr-2">
               <div className="flex-1">
-                <Merek />
+                <Merek nama_bisnis={nama_bisnis} />
               </div>
               <button
                 type="button"
@@ -140,7 +177,7 @@ export function BilahSisi() {
               </button>
             </div>
             <DaftarNav onPilih={() => setTerbuka(false)} />
-            <KakiSisi />
+            <KakiSisi nama_pengguna={nama_pengguna} email={email} />
           </div>
         </div>
       ) : null}

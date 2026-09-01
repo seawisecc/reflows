@@ -8,9 +8,10 @@ Latar belakang dan alasan setiap pilihan ada di
 
 ## Status
 
-**Fase 0, fondasi.** Antarmuka sudah berdiri dengan data contoh. Belum ada
-koneksi ke Supabase maupun gateway WhatsApp, jadi belum ada pesan yang benar
-benar terkirim atau diterima.
+**Fase 1, jalur masuk.** Database Supabase sudah tersambung, autentikasi dan
+Row Level Security jalan, dan webhook WhatsApp sudah bisa menerima pesan
+sungguhan. Gateway masih memakai penyedia tiruan, jadi belum ada pesan yang
+benar-benar terkirim keluar.
 
 ## Menjalankan
 
@@ -22,6 +23,21 @@ npm run dev
 
 Buka http://localhost:3000, halaman utama langsung mengarah ke `/dasbor`.
 
+## Menyiapkan dari nol
+
+```bash
+cp .env.example .env.local        # lalu isi kuncinya
+npm run sb -- link --project-ref <ref>
+npm run db:push                   # pasang skema
+npm run siapkan-tenant            # isi tenant dan materi admin
+npm run buat-pengguna -- email@bisnis.com "Nama Lengkap" pemilik
+npm run periksa:produksi          # buktikan semuanya benar
+```
+
+Docker tidak diperlukan. `skrip/sb.sh` memakai `SUPABASE_ACCESS_TOKEN` dari
+`.env.local`, jadi login global Supabase CLI untuk project lain tidak
+tertimpa.
+
 ## Perintah
 
 | Perintah | Fungsi |
@@ -29,7 +45,28 @@ Buka http://localhost:3000, halaman utama langsung mengarah ke `/dasbor`.
 | `npm run dev` | Server pengembangan |
 | `npm run build` | Build produksi |
 | `npm run lint` | ESLint |
-| `npm run periksa` | Lint, typecheck, dan build sekaligus |
+| `npm test` | Tes unit dan uji skema terhadap PostgreSQL lewat PGlite |
+| `npm run periksa` | Lint, typecheck, tes, dan build sekaligus |
+| `npm run periksa:produksi` | Memeriksa database Supabase yang sungguhan |
+| `npm run uji-webhook` | Uji jalur webhook dari ujung ke ujung |
+| `npm run uji-auth` | Uji sesi pengguna dan isolasi antar tenant |
+| `npm run db:push` | Memasang migrasi ke Supabase |
+| `npm run siapkan-tenant` | Mengisi tenant Seawise dan materi adminnya |
+| `npm run buat-pengguna` | Membuat akun masuk untuk satu tenant |
+
+## Pengujian
+
+Tiga lapis, masing-masing membuktikan hal yang berbeda:
+
+| Lapis | Perintah | Yang dibuktikan |
+|---|---|---|
+| Unit | `npm test` | Aturan bisnis, tanpa jaringan dan tanpa database |
+| Skema | `npm test` | Migrasi dan RLS terhadap PostgreSQL sungguhan lewat PGlite, tanpa Docker |
+| Produksi | `npm run periksa:produksi`, `uji-webhook`, `uji-auth` | Perilaku di Supabase yang sungguhan |
+
+Lapis produksi ada karena beberapa kesalahan mustahil terlihat dari uji
+lokal. Contohnya `service_role` yang kehilangan hak akses tabel: migrasi
+berjalan mulus, uji lokal lolos, tapi semua webhook akan gagal di produksi.
 
 ## Susunan folder
 
@@ -83,5 +120,24 @@ Menambah tema baru cukup menambahkan satu blok `[data-tema="..."]` di
 Security. Setiap tabel bisnis membawa `tenant_id`, dan seluruh kebijakan
 bertumpu pada fungsi `public.tenant_saya()`.
 
-Migrasi ini belum pernah dijalankan terhadap Postgres. Jalankan dulu di
-proyek Supabase percobaan sebelum dipakai serius.
+Migrasi sudah dijalankan terhadap PostgreSQL sungguhan dan diuji, baik
+lewat PGlite secara lokal maupun di project Supabase.
+
+Dua hal yang gampang terlewat dan sudah ditangani:
+
+- `service_role` melewati Row Level Security lewat sifat `bypassrls`, tapi
+  itu bukan pengganti hak akses tabel. Keduanya harus diberikan.
+- Mencabut hak baca satu kolom tidak menyembunyikan kolom itu selama hak di
+  tingkat tabel masih ada. Haknya harus dicabut penuh lalu diberikan lagi
+  per kolom.
+
+## Keamanan webhook
+
+Fonnte tidak menandatangani webhooknya sama sekali, jadi keaslian permintaan
+tidak bisa dibuktikan dari isinya. Pengamanannya dua lapis:
+
+1. Rahasia 64 karakter di jalur URL, satu per tenant, tersimpan di kolom
+   `rahasia_webhook` yang tidak bisa dibaca dari browser.
+2. Nomor perangkat di muatan harus cocok dengan nomor milik tenant itu.
+
+URL webhooknya dicetak `npm run siapkan-tenant`. Rahasia itu setara kunci.
