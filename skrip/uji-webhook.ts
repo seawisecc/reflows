@@ -12,7 +12,9 @@ import { muat_env } from "./env-lokal";
 
 const ALAMAT = process.env.ALAMAT_UJI ?? "http://localhost:3111";
 const NOMOR_UJI = "628999000111";
-const NOMOR_PERANGKAT = "6281338291000";
+
+/** Diisi dari pengaturan tenant di awal main(), bukan dikarang. */
+let nomor_perangkat = "";
 
 let lulus = 0;
 let gagal = 0;
@@ -44,7 +46,7 @@ async function kirim_webhook(rahasia: string, muatan: Record<string, unknown>) {
 
 function muatan(ubah: Record<string, unknown> = {}) {
   return {
-    device: NOMOR_PERANGKAT,
+    device: nomor_perangkat,
     sender: NOMOR_UJI,
     name: "Kontak Uji Otomatis",
     message: "Bikin website katering berapa ya?",
@@ -94,12 +96,22 @@ async function main() {
     .single();
   const rahasia = pengaturan!.rahasia_webhook as string;
 
-  // Nomor perangkat disetel supaya pemeriksaan kepemilikan benar-benar diuji,
-  // bukan dilewati karena kolomnya masih kosong.
-  await db
-    .from("pengaturan_tenant")
-    .update({ nomor_wa: NOMOR_PERANGKAT })
-    .eq("tenant_id", tenant_id);
+  // Nomor perangkat diambil dari pengaturan yang sudah ada, tidak ditimpa.
+  //
+  // Versi pertama skrip ini menuliskan nomor karangan ke kolom itu dan lupa
+  // mengembalikannya. Akibatnya nomor pengirim sungguhan tertimpa, dan semua
+  // pesan client yang masuk ditolak diam-diam karena nomor perangkatnya
+  // dianggap bukan milik tenant ini. Tidak ada galat, tidak ada tanda, cuma
+  // client yang tidak pernah dibalas. Skrip uji tidak boleh meninggalkan
+  // jejak apa pun di pengaturan produksi.
+  nomor_perangkat = (pengaturan!.nomor_wa as string | null) ?? "";
+  if (!nomor_perangkat) {
+    console.error(
+      "\nNomor pengirim belum disetel di Pengaturan, jadi pemeriksaan",
+    );
+    console.error("kepemilikan perangkat tidak bisa diuji. Sambungkan nomor dulu.\n");
+    process.exit(1);
+  }
 
   await bersihkan(db, tenant_id);
   console.log(`\nMenguji ${ALAMAT} terhadap ${url}\n`);
@@ -241,6 +253,17 @@ async function main() {
     "pesan ikut terhapus lewat cascade",
     (pesan_sisa ?? 0) === 0,
     `sisa ${pesan_sisa}`,
+  );
+
+  const { data: pengaturan_akhir } = await db
+    .from("pengaturan_tenant")
+    .select("nomor_wa")
+    .eq("tenant_id", tenant_id)
+    .single();
+  periksa(
+    "pengaturan tenant tidak tersentuh sama sekali",
+    pengaturan_akhir?.nomor_wa === nomor_perangkat,
+    `nomor jadi ${pengaturan_akhir?.nomor_wa}, seharusnya tetap ${nomor_perangkat}`,
   );
 
   console.log(`\n${lulus} lulus, ${gagal} gagal\n`);

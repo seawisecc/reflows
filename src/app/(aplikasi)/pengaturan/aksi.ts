@@ -7,7 +7,7 @@ import { tenant_saya } from "@/lib/data/pengaturan";
 import { enkripsi } from "@/lib/rahasia";
 import { kredensial_gateway } from "@/lib/gudang-supabase";
 import { normalkan_nomor, pilih_gateway } from "@/lib/gateway";
-import type { HasilQr } from "@/lib/gateway/jenis";
+import type { HasilQr, ProfilPerangkat } from "@/lib/gateway/jenis";
 import type { ModeBalas } from "@/tipe";
 
 export type KeadaanPengaturan = {
@@ -131,6 +131,60 @@ export async function hapus_token(): Promise<KeadaanPengaturan> {
 
   revalidatePath("/pengaturan");
   return { galat: null, pesan: "Token gateway dihapus." };
+}
+
+export type HasilPeriksaPerangkat =
+  | { ok: true; profil: ProfilPerangkat; nomor_diselaraskan: boolean }
+  | { ok: false; alasan: string };
+
+/**
+ * Menanyakan keadaan perangkat ke gateway, menyimpannya, dan menyelaraskan
+ * nomor pengirim dengan nomor yang benar-benar tersambung.
+ *
+ * Penyelarasan itu bukan kemewahan. Nomor pengirim dipakai memastikan pesan
+ * masuk memang ditujukan ke tenant ini. Kalau nilainya meleset dari nomor
+ * yang sungguhan, semua pesan client ditolak diam-diam dan tidak ada yang
+ * tahu sampai ada yang mengeluh tidak dibalas.
+ */
+export async function periksa_perangkat(): Promise<HasilPeriksaPerangkat> {
+  const tenant_id = await tenant_saya();
+  if (!tenant_id) return { ok: false, alasan: "Sesi kamu sudah habis." };
+
+  const layanan = klien_layanan();
+  const kredensial = await kredensial_gateway(layanan, tenant_id);
+
+  if (kredensial?.gateway === "fonnte" && !kredensial.token) {
+    return { ok: false, alasan: "Token Fonnte belum diisi." };
+  }
+
+  const gateway = pilih_gateway({
+    gateway: kredensial?.gateway ?? "mock",
+    token: kredensial?.token ?? null,
+  });
+
+  const hasil = await gateway.profil();
+  if (!hasil.ok) return { ok: false, alasan: hasil.alasan };
+
+  const p = hasil.profil;
+  const perlu_selaras = Boolean(p.nomor) && p.nomor !== kredensial?.nomor_wa;
+
+  await layanan
+    .from("pengaturan_tenant")
+    .update({
+      perangkat_tersambung: p.tersambung,
+      perangkat_nama: p.nama,
+      perangkat_paket: p.paket,
+      perangkat_kuota: p.kuota,
+      perangkat_kedaluwarsa: p.kedaluwarsa,
+      perangkat_diperiksa_at: new Date().toISOString(),
+      ...(perlu_selaras ? { nomor_wa: p.nomor } : {}),
+    })
+    .eq("tenant_id", tenant_id);
+
+  revalidatePath("/pengaturan");
+  revalidatePath("/dasbor");
+  revalidatePath("/percakapan");
+  return { ok: true, profil: p, nomor_diselaraskan: perlu_selaras };
 }
 
 export async function ambil_qr(): Promise<HasilQr> {

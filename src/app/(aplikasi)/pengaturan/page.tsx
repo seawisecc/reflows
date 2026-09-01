@@ -51,9 +51,7 @@ export default async function HalamanPengaturan() {
           <>
             <FormulirPengaturan awal={pengaturan} />
 
-            <div className="grid gap-6 xl:grid-cols-2">
-              <PanelQr gateway={pengaturan.gateway} />
-            </div>
+            <PanelQr awal={pengaturan} />
 
             {pengaturan.url_webhook ? (
               <Kartu>

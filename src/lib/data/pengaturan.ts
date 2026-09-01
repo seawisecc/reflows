@@ -19,6 +19,14 @@ export type Pengaturan = {
   /** Token tidak pernah dikirim ke browser, cuma kabar ada tidaknya. */
   ada_token: boolean;
   url_webhook: string | null;
+  perangkat: {
+    tersambung: boolean | null;
+    nama: string | null;
+    paket: string | null;
+    kuota: number | null;
+    kedaluwarsa: string | null;
+    diperiksa_at: string | null;
+  };
 };
 
 /**
@@ -57,7 +65,7 @@ export async function ambil_pengaturan(
   const { data } = await db
     .from("pengaturan_tenant")
     .select(
-      "tenant_id, gateway, nomor_wa, mode_balas, ambang_keyakinan, jam_mulai, jam_selesai, zona_waktu, pesan_di_luar_jam, kuota_pesan_harian",
+      "tenant_id, gateway, nomor_wa, mode_balas, ambang_keyakinan, jam_mulai, jam_selesai, zona_waktu, pesan_di_luar_jam, kuota_pesan_harian, perangkat_tersambung, perangkat_nama, perangkat_paket, perangkat_kuota, perangkat_kedaluwarsa, perangkat_diperiksa_at",
     )
     .maybeSingle();
 
@@ -99,7 +107,32 @@ export async function ambil_pengaturan(
     kuota_pesan_harian: Number(data.kuota_pesan_harian),
     ada_token,
     url_webhook,
+    perangkat: {
+      tersambung: data.perangkat_tersambung as boolean | null,
+      nama: data.perangkat_nama as string | null,
+      paket: data.perangkat_paket as string | null,
+      kuota: data.perangkat_kuota === null ? null : Number(data.perangkat_kuota),
+      kedaluwarsa: data.perangkat_kedaluwarsa as string | null,
+      diperiksa_at: data.perangkat_diperiksa_at as string | null,
+    },
   };
 }
+
+/** Status ringkas untuk bilah atas, tanpa menyentuh kolom rahasia. */
+export const status_perangkat = cache(async function status_perangkat() {
+  if (!supabase_siap()) return null;
+  const db = await klien_server();
+  const { data } = await db
+    .from("pengaturan_tenant")
+    .select("gateway, nomor_wa, perangkat_tersambung, perangkat_diperiksa_at")
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    gateway: data.gateway as string,
+    nomor_wa: data.nomor_wa as string | null,
+    tersambung: data.perangkat_tersambung as boolean | null,
+    diperiksa_at: data.perangkat_diperiksa_at as string | null,
+  };
+});
 
 export { tenant_saya };

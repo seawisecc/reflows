@@ -1,4 +1,10 @@
-import type { Gateway, HasilKirim, HasilQr, PermintaanKirim } from "./jenis";
+import type {
+  Gateway,
+  HasilKirim,
+  HasilProfil,
+  HasilQr,
+  PermintaanKirim,
+} from "./jenis";
 import { baca_webhook_fonnte } from "./fonnte";
 import { normalkan_nomor } from "./nomor";
 
@@ -40,6 +46,20 @@ export function gateway_mock(): Gateway & { terkirim: PesanTercatat[] } {
     },
 
     baca_webhook: baca_webhook_fonnte,
+
+    async profil(): Promise<HasilProfil> {
+      return {
+        ok: true,
+        profil: {
+          nomor: null,
+          tersambung: false,
+          nama: "Gateway tiruan",
+          paket: "tiruan",
+          kuota: null,
+          kedaluwarsa: null,
+        },
+      };
+    },
 
     async qr(): Promise<HasilQr> {
       // Gateway tiruan selalu mengaku tersambung, supaya layar pengaturan

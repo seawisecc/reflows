@@ -67,7 +67,7 @@ export function FormulirPengaturan({ awal }: { awal: Pengaturan }) {
 
           <Kolom
             label="Nomor pengirim"
-            petunjuk="Nomor WhatsApp yang dipakai membalas. Dipakai juga memastikan pesan masuk memang untuk kamu."
+            petunjuk="Diisi otomatis dari nomor yang benar-benar tersambung setiap kali status diperiksa. Dipakai memastikan pesan masuk memang untuk kamu."
           >
             <Bidang
               name="nomor_wa"

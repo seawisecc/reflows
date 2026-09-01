@@ -40,6 +40,21 @@ export type HasilQr =
   | { keadaan: "tersambung" }
   | { keadaan: "gagal"; alasan: string };
 
+/** Keadaan perangkat WhatsApp menurut gateway. */
+export type ProfilPerangkat = {
+  /** Nomor yang benar-benar tersambung, menurut gateway. */
+  nomor: string | null;
+  tersambung: boolean;
+  nama: string | null;
+  paket: string | null;
+  kuota: number | null;
+  kedaluwarsa: string | null;
+};
+
+export type HasilProfil =
+  | { ok: true; profil: ProfilPerangkat }
+  | { ok: false; alasan: string };
+
 export interface Gateway {
   readonly nama: string;
   kirim(permintaan: PermintaanKirim): Promise<HasilKirim>;
@@ -55,4 +70,11 @@ export interface Gateway {
    * memberi QR untuk perangkat yang sudah hidup.
    */
   qr(): Promise<HasilQr>;
+  /**
+   * Keadaan perangkat: nomor mana yang tersambung, dan masih hidup atau
+   * tidak. Dipakai menampilkan status di layar, dan sekaligus jadi sumber
+   * kebenaran nomor pengirim, supaya nomor yang tersimpan tidak pernah
+   * berbeda dari nomor yang benar-benar dipakai mengirim.
+   */
+  profil(): Promise<HasilProfil>;
 }

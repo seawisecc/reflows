@@ -6,13 +6,13 @@
  * Yang ditiru: peran anon dan authenticated, skema auth, serta auth.uid()
  * yang membaca klaim JWT. Selebihnya Postgres asli.
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 
-const MIGRASI = [
-  "supabase/migrations/20260901000001_skema_awal.sql",
-  "supabase/migrations/20260901000002_hak_service_role.sql",
-];
+const MIGRASI = readdirSync("supabase/migrations")
+  .filter((n) => n.endsWith(".sql"))
+  .sort()
+  .map((n) => `supabase/migrations/${n}`);
 
 const PRASYARAT = `
 create role anon nologin;

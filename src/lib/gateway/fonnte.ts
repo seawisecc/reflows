@@ -1,6 +1,7 @@
 import type {
   Gateway,
   HasilKirim,
+  HasilProfil,
   HasilQr,
   PermintaanKirim,
   PesanMasuk,
@@ -9,6 +10,7 @@ import { normalkan_nomor } from "./nomor";
 
 const ENDPOINT_KIRIM = "https://api.fonnte.com/send";
 const ENDPOINT_QR = "https://api.fonnte.com/qr";
+const ENDPOINT_PERANGKAT = "https://api.fonnte.com/device";
 
 /** Fonnte memakai kalimat ini saat perangkatnya sudah tersambung. */
 const PENANDA_TERSAMBUNG = "already connect";
@@ -142,6 +144,51 @@ export function gateway_fonnte(token: string): Gateway {
     },
 
     baca_webhook: baca_webhook_fonnte,
+
+    async profil(): Promise<HasilProfil> {
+      let jawaban: Response;
+      try {
+        jawaban = await fetch(ENDPOINT_PERANGKAT, {
+          method: "POST",
+          headers: { Authorization: token, "Content-Type": "application/json" },
+          body: "{}",
+        });
+      } catch (e) {
+        return {
+          ok: false,
+          alasan: `Gagal menghubungi Fonnte: ${e instanceof Error ? e.message : String(e)}`,
+        };
+      }
+
+      let hasil: unknown;
+      try {
+        hasil = await jawaban.json();
+      } catch {
+        return { ok: false, alasan: `Jawaban Fonnte bukan JSON (HTTP ${jawaban.status})` };
+      }
+
+      const h = hasil as Record<string, unknown>;
+      if (h.status !== true) {
+        return {
+          ok: false,
+          alasan: teks(h.reason) ?? `Fonnte menolak (HTTP ${jawaban.status})`,
+        };
+      }
+
+      const kuota = Number(teks(h.quota));
+      return {
+        ok: true,
+        profil: {
+          nomor: normalkan_nomor(teks(h.device)),
+          // Fonnte memakai kata "connect" dan "disconnect", bukan boolean.
+          tersambung: teks(h.device_status)?.toLowerCase() === "connect",
+          nama: teks(h.name),
+          paket: teks(h.package),
+          kuota: Number.isFinite(kuota) ? kuota : null,
+          kedaluwarsa: teks(h.expired),
+        },
+      };
+    },
 
     async qr(): Promise<HasilQr> {
       let jawaban: Response;
