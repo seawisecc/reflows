@@ -16,10 +16,16 @@ import { join } from "node:path";
  *  terpasang belum mengenalnya walaupun runtime-nya sudah mendukung. */
 function telusuri(dir: string): string[] {
   const hasil: string[] = [];
-  for (const isi of readdirSync(dir, { withFileTypes: true })) {
+  let isian;
+  try {
+    isian = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return hasil;
+  }
+  for (const isi of isian) {
     const jalur = join(dir, isi.name);
     if (isi.isDirectory()) hasil.push(...telusuri(jalur));
-    else if (/\.tsx?$/.test(isi.name)) hasil.push(jalur);
+    else if (/\.(tsx?|md|sql)$/.test(isi.name)) hasil.push(jalur);
   }
   return hasil;
 }
@@ -68,3 +74,48 @@ if (masalah > 0) {
 }
 
 console.log("Berkas Server Action bersih: semua ekspornya fungsi async.");
+
+/**
+ * Tanda pisah panjang dilarang di seluruh keluaran project ini, karena
+ * membuat teks yang dijual ke pelanggan terlihat tidak profesional. Gampang
+ * terselip karena banyak alat menulisnya otomatis, jadi diperiksa mesin
+ * alih-alih diandalkan pada ingatan.
+ */
+const PISAH_PANJANG = [String.fromCharCode(8212), String.fromCharCode(8211)];
+
+const SASARAN = [
+  ...telusuri("src"),
+  ...telusuri("skrip"),
+  ...telusuri("docs"),
+  ...telusuri("supabase/migrations"),
+  "README.md",
+  "CLAUDE.md",
+  ".env.example",
+];
+
+let pisah = 0;
+for (const berkas of SASARAN) {
+  let isi: string;
+  try {
+    isi = readFileSync(berkas, "utf8");
+  } catch {
+    continue;
+  }
+  // Berkas ini sendiri memang harus memuat karakternya untuk bisa mencari.
+  if (berkas.endsWith("periksa-aksi.ts")) continue;
+  isi.split("\n").forEach((baris, i) => {
+    if (PISAH_PANJANG.some((t) => baris.includes(t))) {
+      console.error(`  ${berkas}:${i + 1}  memuat tanda pisah panjang\n    ${baris.trim()}`);
+      pisah++;
+    }
+  });
+}
+
+if (pisah > 0) {
+  console.error(
+    `\n${pisah} tanda pisah panjang. Ganti dengan koma, titik dua, titik, atau kurung.\n`,
+  );
+  process.exit(1);
+}
+
+console.log("Tidak ada tanda pisah panjang.");
