@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# Kecuali templatenya, yang memang harus ikut supaya orang tahu kunci apa
+# saja yang perlu diisi. Berkas ini wajib selalu kosong nilainya.
+!.env.example
 
 # vercel
 .vercel

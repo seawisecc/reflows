@@ -12,7 +12,8 @@
     "db:push": "sh skrip/sb.sh db push",
     "db:diff": "sh skrip/sb.sh db diff",
     "uji-skema": "tsx skrip/uji-skema.ts",
-    "test": "tsx --test src/lib/__tests__/*.test.ts && tsx skrip/uji-skema.ts"
+    "test": "tsx --test src/lib/__tests__/*.test.ts && tsx skrip/uji-skema.ts",
+    "periksa:produksi": "tsx skrip/periksa-produksi.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

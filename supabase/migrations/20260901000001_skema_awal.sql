@@ -166,6 +166,25 @@ create table public.pesan (
 
 create index pesan_utas_idx on public.pesan (percakapan_id, dibuat_at);
 
+-- ---------- Penanda pesan masuk ----------
+-- Menaikkan hitungan belum dibaca lewat satu pernyataan UPDATE, bukan baca
+-- lalu tulis dari aplikasi. Dua webhook yang datang bersamaan akan saling
+-- menimpa kalau hitungannya dibaca dulu ke aplikasi.
+--
+-- Sengaja BUKAN security definer. Fungsi ini cuma dipanggil jalur webhook
+-- yang memakai service role, dan service role memang melewati RLS. Kalau
+-- dibuat security definer, pengguna biasa bisa menaikkan hitungan percakapan
+-- tenant lain hanya dengan menebak id-nya.
+create or replace function public.tandai_pesan_masuk(
+  p_percakapan_id uuid,
+  p_waktu timestamptz
+) returns void language sql as $$
+  update public.percakapan
+     set belum_dibaca = belum_dibaca + 1,
+         pesan_terakhir_at = greatest(pesan_terakhir_at, p_waktu)
+   where id = p_percakapan_id
+$$;
+
 -- ---------- Jejak pemanggilan AI ----------
 create table public.jalan_ai (
   id uuid primary key default gen_random_uuid(),
@@ -256,6 +275,10 @@ grant usage, select on all sequences in schema public to authenticated;
 
 -- anon dipakai sebelum login. Tidak ada satu pun tabel yang boleh dilihatnya.
 revoke all on all tables in schema public from anon;
+
+-- Fungsi penanda pesan masuk hanya untuk jalur webhook, bukan untuk browser.
+revoke execute on function public.tandai_pesan_masuk(uuid, timestamptz)
+  from anon, authenticated, public;
 
 -- Token gateway tidak boleh terbaca lewat API publik dalam bentuk apa pun.
 -- Mencabut satu kolom saja tidak cukup: hak di tingkat tabel tetap menang,

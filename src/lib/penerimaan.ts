@@ -63,6 +63,7 @@ export type HasilTerima =
   | {
       jenis: "tersimpan";
       pesan_id: string;
+      tenant_id: string;
       percakapan_id: string;
       status: StatusPercakapan;
       alasan_eskalasi: string | null;
@@ -131,6 +132,7 @@ export async function terima_pesan(
     return {
       jenis: "tersimpan",
       pesan_id,
+      tenant_id: tenant.tenant_id,
       percakapan_id: percakapan.id,
       status: "selesai",
       alasan_eskalasi: null,
@@ -175,6 +177,7 @@ export async function terima_pesan(
   return {
     jenis: "tersimpan",
     pesan_id,
+    tenant_id: tenant.tenant_id,
     percakapan_id: percakapan.id,
     status,
     alasan_eskalasi: alasan,

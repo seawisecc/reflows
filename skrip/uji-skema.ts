@@ -9,6 +9,11 @@
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 
+const MIGRASI = [
+  "supabase/migrations/20260901000001_skema_awal.sql",
+  "supabase/migrations/20260901000002_hak_service_role.sql",
+];
+
 const PRASYARAT = `
 create role anon nologin;
 create role authenticated nologin;
@@ -46,14 +51,16 @@ async function tolak(db: PGlite, nama: string, sql: string, potongan: string) {
 
 async function main() {
   const db = await PGlite.create();
-  const migrasi = readFileSync("supabase/migrations/20260901000001_skema_awal.sql", "utf8");
+
 
   console.log("\nMenyiapkan lingkungan tiruan Supabase");
   await db.exec(PRASYARAT);
 
   console.log("Menjalankan migrasi");
-  await db.exec(migrasi);
-  periksa("migrasi berjalan tanpa galat", true);
+  for (const berkas of MIGRASI) {
+    await db.exec(readFileSync(berkas, "utf8"));
+  }
+  periksa("semua migrasi berjalan tanpa galat", true);
 
   const tabel = await db.query<{ n: string }>(
     `select tablename as n from pg_tables where schemaname = 'public' order by 1`,
@@ -174,6 +181,39 @@ async function main() {
     `baris: ${pengaturan.rows.length}`,
   );
 
+  console.log("\nFungsi penanda pesan masuk");
+  await db.exec(`reset role;`);
+  await db.exec(`
+    insert into public.percakapan (id, tenant_id, kontak_id)
+    select 'cccccccc-0000-0000-0000-000000000001', tenant_id, id
+      from public.kontak where nomor_wa = '628111000001';
+  `);
+  await db.exec(`
+    select public.tandai_pesan_masuk(
+      'cccccccc-0000-0000-0000-000000000001', now()
+    );
+    select public.tandai_pesan_masuk(
+      'cccccccc-0000-0000-0000-000000000001', now()
+    );
+  `);
+  const hitung = await db.query<{ belum_dibaca: number }>(
+    `select belum_dibaca from public.percakapan
+      where id = 'cccccccc-0000-0000-0000-000000000001'`,
+  );
+  periksa(
+    "dua kali penandaan menaikkan hitungan jadi 2",
+    hitung.rows[0]?.belum_dibaca === 2,
+    `nilai: ${hitung.rows[0]?.belum_dibaca}`,
+  );
+
+  await jadiPengguna("11111111-1111-1111-1111-111111111111");
+  await tolak(
+    db,
+    "pengguna biasa tidak boleh memanggil penanda pesan masuk",
+    `select public.tandai_pesan_masuk('cccccccc-0000-0000-0000-000000000001', now())`,
+    "permission denied",
+  );
+
   console.log("\nRahasia webhook");
   await db.exec(`reset role;`);
   const rahasia = await db.query<{ rahasia_webhook: string }>(
@@ -198,6 +238,36 @@ async function main() {
     semua.rows.length === 3,
     `terlihat: ${semua.rows.length}`,
   );
+
+  console.log("\nHak service_role");
+  await db.exec(`reset role;`);
+  await db.exec(`set role service_role;`);
+  let service_role_lolos = true;
+  let tabel_gagal = "";
+  for (const t of namaTabel) {
+    try {
+      await db.query(`select 1 from public.${t} limit 1`);
+    } catch (e) {
+      service_role_lolos = false;
+      tabel_gagal = `${t}: ${e instanceof Error ? e.message : String(e)}`;
+      break;
+    }
+  }
+  periksa(
+    "service_role bisa membaca semua tabel",
+    service_role_lolos,
+    tabel_gagal,
+  );
+
+  let penanda_lolos = true;
+  try {
+    await db.query(
+      `select public.tandai_pesan_masuk('cccccccc-0000-0000-0000-000000000001', now())`,
+    );
+  } catch {
+    penanda_lolos = false;
+  }
+  periksa("service_role boleh memanggil penanda pesan masuk", penanda_lolos);
 
   console.log("\nTanpa sesi");
   await db.exec(`reset role;`);
