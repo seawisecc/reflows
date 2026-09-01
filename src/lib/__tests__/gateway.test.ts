@@ -229,3 +229,37 @@ test("penolakan lain tetap dilaporkan sebagai gagal beserta alasannya", async ()
 test("gateway tiruan selalu mengaku tersambung", async () => {
   assert.equal((await gateway_mock().qr()).keadaan, "tersambung");
 });
+
+test("tanpa inboxid, id pesan diturunkan dari isinya", () => {
+  const tanpa_id = { ...MUATAN_WAJAR, inboxid: undefined };
+  const hasil = baca_webhook_fonnte(tanpa_id);
+  assert.ok(hasil, "muatan tanpa inboxid tetap harus terbaca");
+  const id = hasil.wa_message_id;
+  assert.ok(id !== null, "id pesan tidak boleh kosong");
+  assert.ok(id.startsWith("sidik-"));
+  assert.equal(id.length, 38, "awalan sidik- ditambah 32 karakter heksadesimal");
+});
+
+test("kiriman ulang yang persis sama menghasilkan sidik yang sama", () => {
+  const tanpa_id = { ...MUATAN_WAJAR, inboxid: undefined };
+  assert.equal(
+    baca_webhook_fonnte(tanpa_id)?.wa_message_id,
+    baca_webhook_fonnte({ ...tanpa_id })?.wa_message_id,
+    "kalau berbeda, kiriman ulang Fonnte akan tersimpan dua kali",
+  );
+});
+
+test("pesan berbeda menghasilkan sidik berbeda", () => {
+  const dasar = { ...MUATAN_WAJAR, inboxid: undefined };
+  const sidik = new Set([
+    baca_webhook_fonnte(dasar)?.wa_message_id,
+    baca_webhook_fonnte({ ...dasar, message: "Pesan lain" })?.wa_message_id,
+    baca_webhook_fonnte({ ...dasar, timestamp: "1788228999" })?.wa_message_id,
+    baca_webhook_fonnte({ ...dasar, sender: "081338291045" })?.wa_message_id,
+  ]);
+  assert.equal(sidik.size, 4, "empat kiriman berbeda harus punya empat sidik berbeda");
+});
+
+test("inboxid tetap dipakai kalau gateway mengirimkannya", () => {
+  assert.equal(baca_webhook_fonnte(MUATAN_WAJAR)?.wa_message_id, "80367170");
+});

@@ -6,6 +6,7 @@ import type {
   PermintaanKirim,
   PesanMasuk,
 } from "./jenis";
+import { createHash } from "node:crypto";
 import { normalkan_nomor } from "./nomor";
 
 const ENDPOINT_KIRIM = "https://api.fonnte.com/send";
@@ -47,6 +48,23 @@ function teks(nilai: unknown): string | null {
   return null;
 }
 
+/**
+ * Sidik jari pesan, dipakai kalau gateway tidak memberi id sendiri.
+ *
+ * Fitur Inbox Fonnte sengaja dimatikan, karena menyalakannya berarti isi
+ * chat client disimpan di server Fonnte. Konsekuensinya field inboxid tidak
+ * ikut dikirim, padahal itu kunci anti-dobel kita.
+ *
+ * Gantinya sidik jari dari isi kiriman. Fonnte mengirim ulang muatan yang
+ * persis sama saat mencoba lagi, termasuk stempel waktunya, jadi sidiknya
+ * akan sama dan kiriman ulang tetap terdeteksi. Pesan berbeda yang kebetulan
+ * isinya sama tidak akan bertabrakan selama detik pengirimannya berbeda.
+ */
+function sidik_pesan(bagian: (string | null)[]): string {
+  const kunci = bagian.map((b) => b ?? "").join("\u0000");
+  return `sidik-${createHash("sha256").update(kunci).digest("hex").slice(0, 32)}`;
+}
+
 /** Fonnte mengirim timestamp dalam detik, kadang sebagai teks, kadang kosong. */
 function waktu_dari(nilai: unknown): string {
   const angka = Number(teks(nilai));
@@ -79,12 +97,15 @@ export function baca_webhook_fonnte(muatan: unknown): PesanMasuk | null {
   const berkas = teks(m.url);
   if (!isi && !berkas) return null;
 
+  const stempel = teks(m.timestamp);
   return {
     nomor_pengirim: pengirim,
     nama_pengirim: teks(m.name),
     isi: isi ?? "",
     nomor_perangkat: perangkat,
-    wa_message_id: teks(m.inboxid),
+    wa_message_id:
+      teks(m.inboxid) ??
+      sidik_pesan([perangkat, pengirim, stempel, isi, berkas]),
     waktu: waktu_dari(m.timestamp),
     lampiran: berkas
       ? {
