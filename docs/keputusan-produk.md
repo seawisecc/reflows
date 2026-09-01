@@ -98,6 +98,17 @@ ditebak, dan disebutkan di daftar keraguan supaya pemilik memeriksanya.
 
 ## Model AI
 
+Haiku 4.5 dipakai sebagai bawaan, termasuk untuk membaca dokumen impor.
+Diuji dengan daftar harga tujuh baris berformat Indonesia: Haiku dan Opus 5
+sama-sama benar tujuh dari tujuh, dan sama-sama menandai harga yang cuma
+tertulis "Hubungi kami" sebagai kosong. Bedanya Opus menarik lebih banyak
+catatan konteks, dengan biaya tujuh kali lipat.
+
+Perbedaan kemampuan antar model wajib diperhatikan, dan ini baru ketahuan
+saat memanggil API sungguhan: Haiku 4.5 menolak `adaptive thinking` dan
+menolak parameter `fallbacks`, dua-duanya dengan galat 400. Model keluarga
+baru justru sebaliknya. Petanya ada di `src/lib/ai/model.ts`.
+
 - Balasan rutin memakai `claude-haiku-4-5`, 1 dolar per juta token masuk dan
   5 dolar per juta token keluar.
 - Naik ke `claude-sonnet-5` hanya saat keyakinan rendah atau percakapan sudah
