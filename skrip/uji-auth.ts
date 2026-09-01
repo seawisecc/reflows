@@ -54,7 +54,7 @@ async function main() {
   console.log("\nProfil dan tenant");
   const { data: profil } = await db
     .from("pengguna")
-    .select("id, nama, email, peran, tenants:tenant_id ( nama, slug )")
+    .select("id, nama, email, peran, tenant_id, tenants:tenant_id ( nama, slug )")
     .eq("id", sesi.session.user.id)
     .maybeSingle();
   periksa("profil pengguna terbaca lewat RLS", Boolean(profil), "tidak ada baris");
@@ -96,6 +96,60 @@ async function main() {
     "kolom pengaturan lain tetap terbaca",
     pengaturan?.length === 1 && pengaturan[0]?.mode_balas === "hybrid",
     JSON.stringify(pengaturan),
+  );
+
+  console.log("\nMenyimpan pengaturan");
+  // Jalur yang sama dengan yang dipakai aksi simpan_pengaturan: kolom biasa
+  // ditulis lewat klien bersesi, jadi hak kolom dan RLS ikut teruji.
+  const { data: semula } = await db
+    .from("pengaturan_tenant")
+    .select("mode_balas, jam_selesai, kuota_pesan_harian, ambang_keyakinan")
+    .single();
+
+  const { error: galat_simpan } = await db
+    .from("pengaturan_tenant")
+    .update({
+      mode_balas: "draf",
+      jam_selesai: "21:00",
+      kuota_pesan_harian: 250,
+      ambang_keyakinan: 0.8,
+    })
+    .eq("tenant_id", (profil as { tenant_id?: string } | null)?.tenant_id ?? "");
+  periksa("pengaturan bisa disimpan lewat sesi pengguna", !galat_simpan, galat_simpan?.message);
+
+  const { data: sesudah } = await db
+    .from("pengaturan_tenant")
+    .select("mode_balas, jam_selesai, kuota_pesan_harian, ambang_keyakinan")
+    .single();
+  periksa(
+    "nilainya benar-benar berubah di database",
+    sesudah?.mode_balas === "draf" &&
+      String(sesudah?.jam_selesai).startsWith("21:00") &&
+      sesudah?.kuota_pesan_harian === 250,
+    JSON.stringify(sesudah),
+  );
+
+  const { error: galat_token_tulis } = await db
+    .from("pengaturan_tenant")
+    .update({ gateway_token_terenkripsi: "coba-tulis-token" })
+    .eq("tenant_id", (profil as { tenant_id?: string } | null)?.tenant_id ?? "");
+  periksa(
+    "token gateway tidak bisa ditulis dari sesi pengguna",
+    Boolean(galat_token_tulis),
+    "penulisan seharusnya ditolak",
+  );
+
+  // Dikembalikan seperti semula supaya uji ini tidak meninggalkan jejak.
+  await db.from("pengaturan_tenant").update(semula!).eq("tenant_id", (profil as { tenant_id?: string } | null)?.tenant_id ?? "");
+  const { data: pulih } = await db
+    .from("pengaturan_tenant")
+    .select("mode_balas, kuota_pesan_harian")
+    .single();
+  periksa(
+    "pengaturan dikembalikan seperti semula",
+    pulih?.mode_balas === semula?.mode_balas &&
+      pulih?.kuota_pesan_harian === semula?.kuota_pesan_harian,
+    JSON.stringify(pulih),
   );
 
   console.log("\nIsolasi terhadap tenant lain");

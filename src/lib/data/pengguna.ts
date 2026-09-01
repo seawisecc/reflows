@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { klien_server } from "@/lib/supabase/server";
 import { supabase_siap } from "@/lib/lingkungan";
 import type { PeranPengguna } from "@/tipe";
@@ -11,8 +12,11 @@ export type ProfilPengguna = {
   tenant_nama: string;
 };
 
-/** Profil pengguna yang sedang masuk, beserta nama bisnisnya. */
-export async function profil_saya(): Promise<ProfilPengguna | null> {
+/**
+ * Profil pengguna yang sedang masuk, beserta nama bisnisnya.
+ * Di-cache per permintaan karena bilah atas dan halaman sama-sama memakainya.
+ */
+export const profil_saya = cache(async function profil_saya(): Promise<ProfilPengguna | null> {
   if (!supabase_siap()) return null;
 
   const db = await klien_server();
@@ -36,4 +40,4 @@ export async function profil_saya(): Promise<ProfilPengguna | null> {
     peran: data.peran as PeranPengguna,
     tenant_nama: tenant?.nama ?? "Bisnis kamu",
   };
-}
+});

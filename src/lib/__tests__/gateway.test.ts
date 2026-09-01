@@ -155,3 +155,77 @@ test("tanpa token, penyedia apa pun jatuh ke gateway tiruan", () => {
   assert.equal(pilih_gateway({ gateway: "fonnte", token: "ada" }).nama, "fonnte");
   assert.equal(pilih_gateway({ gateway: "mock", token: "ada" }).nama, "mock");
 });
+
+test("QR Fonnte dibungkus jadi data URL siap pakai", async () => {
+  const asli = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify({ status: true, url: "iVBORw0KGgoAAAA" }), {
+      status: 200,
+    })) as unknown as typeof fetch;
+  try {
+    const hasil = await gateway_fonnte("token").qr();
+    assert.equal(hasil.keadaan, "perlu-scan");
+    assert.equal(
+      hasil.keadaan === "perlu-scan" ? hasil.gambar : "",
+      "data:image/png;base64,iVBORw0KGgoAAAA",
+    );
+  } finally {
+    globalThis.fetch = asli;
+  }
+});
+
+test("awalan data URL tidak dipasang dobel", async () => {
+  const asli = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(
+      JSON.stringify({ status: true, url: "data:image/png;base64,iVBORw0KGgo" }),
+      { status: 200 },
+    )) as unknown as typeof fetch;
+  try {
+    const hasil = await gateway_fonnte("token").qr();
+    assert.equal(
+      hasil.keadaan === "perlu-scan" ? hasil.gambar : "",
+      "data:image/png;base64,iVBORw0KGgo",
+    );
+  } finally {
+    globalThis.fetch = asli;
+  }
+});
+
+test("penolakan karena sudah tersambung dibaca sebagai kabar baik", async () => {
+  const asli = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(
+      JSON.stringify({ status: false, reason: "device already connect" }),
+      { status: 200 },
+    )) as unknown as typeof fetch;
+  try {
+    const hasil = await gateway_fonnte("token").qr();
+    assert.equal(
+      hasil.keadaan,
+      "tersambung",
+      "Fonnte menolak memberi QR untuk perangkat yang sudah hidup, dan itu bukan galat",
+    );
+  } finally {
+    globalThis.fetch = asli;
+  }
+});
+
+test("penolakan lain tetap dilaporkan sebagai gagal beserta alasannya", async () => {
+  const asli = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify({ status: false, reason: "token invalid" }), {
+      status: 200,
+    })) as unknown as typeof fetch;
+  try {
+    const hasil = await gateway_fonnte("salah").qr();
+    assert.equal(hasil.keadaan, "gagal");
+    assert.equal(hasil.keadaan === "gagal" ? hasil.alasan : "", "token invalid");
+  } finally {
+    globalThis.fetch = asli;
+  }
+});
+
+test("gateway tiruan selalu mengaku tersambung", async () => {
+  assert.equal((await gateway_mock().qr()).keadaan, "tersambung");
+});

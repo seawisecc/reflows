@@ -1,11 +1,16 @@
-import { Bot, Plug, ShieldAlert } from "lucide-react";
+import { headers } from "next/headers";
+import { Link2, ShieldAlert } from "lucide-react";
 import { BilahAtas } from "@/komponen/shell/bilah-atas";
 import { Kartu, KepalaKartu, IsiKartu } from "@/komponen/ui/kartu";
-import { Bidang, Kolom, Pilih, AreaTeks } from "@/komponen/ui/bidang";
-import { Tombol } from "@/komponen/ui/tombol";
-import { Lencana, TitikStatus } from "@/komponen/ui/lencana";
+import { Kosong } from "@/komponen/ui/kosong";
+import { Lencana } from "@/komponen/ui/lencana";
+import { ambil_pengaturan } from "@/lib/data/pengaturan";
+import { FormulirPengaturan } from "./formulir";
+import { PanelQr } from "./panel-qr";
+import { UrlWebhook } from "./salin";
 
 export const metadata = { title: "Pengaturan | Reflows" };
+export const dynamic = "force-dynamic";
 
 const ATURAN_ESKALASI = [
   "Kontak menanyakan harga atau layanan yang tidak ada di halaman Pengetahuan",
@@ -16,105 +21,68 @@ const ATURAN_ESKALASI = [
   "Pesan masuk di luar jam aktif",
 ];
 
-export default function HalamanPengaturan() {
+/** Alamat asal, dipakai menyusun URL webhook yang ditempel ke gateway. */
+async function asal(): Promise<string> {
+  const h = await headers();
+  const tuan_rumah = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const protokol =
+    h.get("x-forwarded-proto") ?? (tuan_rumah.startsWith("localhost") ? "http" : "https");
+  return `${protokol}://${tuan_rumah}`;
+}
+
+export default async function HalamanPengaturan() {
+  const pengaturan = await ambil_pengaturan(await asal());
+
   return (
     <>
       <BilahAtas
         judul="Pengaturan"
         keterangan="Koneksi WhatsApp, perilaku AI, dan aturan eskalasi"
       />
-      <main className="grid gap-6 p-4 sm:p-6 xl:grid-cols-2">
-        <Kartu>
-          <KepalaKartu
-            judul="Koneksi WhatsApp"
-            keterangan="Reflows tidak menyimpan nomor kamu di luar tenant ini. Token gateway dienkripsi sebelum masuk database."
-            aksi={
-              <Lencana nada="tunggu">
-                <TitikStatus nada="tunggu" hidup />
-                Belum tersambung
-              </Lencana>
-            }
-          />
-          <IsiKartu className="space-y-4">
-            <Kolom label="Penyedia gateway">
-              <Pilih defaultValue="fonnte" disabled>
-                <option value="fonnte">Fonnte</option>
-                <option value="mock">Mock, untuk pengujian tanpa kirim</option>
-                <option value="meta">WhatsApp Business API resmi</option>
-              </Pilih>
-            </Kolom>
-            <Kolom
-              label="Token gateway"
-              petunjuk="Ambil dari dasbor Fonnte, menu Device. Token ini setara kunci nomor kamu, jangan dibagikan."
-            >
-              <Bidang type="password" placeholder="Belum diisi" disabled />
-            </Kolom>
-            <Kolom
-              label="Nomor pengirim"
-              petunjuk="Pakai nomor baru khusus Reflows dulu. Nomor bisnis asli disambungkan setelah terbukti stabil."
-            >
-              <Bidang placeholder="62812xxxxxxx" disabled />
-            </Kolom>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Tombol disabled>
-                <Plug className="size-3.5" />
-                Sambungkan
-              </Tombol>
-              <Tombol varian="garis" disabled>
-                Uji kirim
-              </Tombol>
+      <main className="space-y-6 p-4 sm:p-6">
+        {!pengaturan ? (
+          <Kartu>
+            <Kosong
+              judul="Pengaturan belum tersedia"
+              keterangan="Database belum tersambung, atau tenant kamu belum punya baris pengaturan. Jalankan npm run siapkan-tenant lebih dulu."
+            />
+          </Kartu>
+        ) : (
+          <>
+            <FormulirPengaturan awal={pengaturan} />
+
+            <div className="grid gap-6 xl:grid-cols-2">
+              <PanelQr gateway={pengaturan.gateway} />
             </div>
-          </IsiKartu>
-        </Kartu>
+
+            {pengaturan.url_webhook ? (
+              <Kartu>
+                <KepalaKartu
+                  judul="URL webhook"
+                  keterangan="Tempel alamat ini di dasbor Fonnte, kolom Webhook URL, supaya pesan masuk sampai ke Reflows."
+                  aksi={
+                    <Lencana nada="tunggu">
+                      <Link2 className="size-3" />
+                      Setara kunci
+                    </Lencana>
+                  }
+                />
+                <IsiKartu className="space-y-3">
+                  <UrlWebhook url={pengaturan.url_webhook} />
+                  <p className="text-xs leading-relaxed text-redup">
+                    Fonnte tidak menandatangani webhooknya, jadi rahasia di
+                    dalam alamat inilah yang membuktikan pesan benar-benar
+                    datang dari gateway kamu. Jangan ditempel di grup atau
+                    dokumen bersama. Reflows juga mencocokkan nomor perangkat
+                    sebagai lapisan kedua.
+                  </p>
+                </IsiKartu>
+              </Kartu>
+            ) : null}
+          </>
+        )}
 
         <Kartu>
-          <KepalaKartu
-            judul="Perilaku AI"
-            keterangan="Mode hybrid membuat AI mengirim sendiri hanya saat yakin, sisanya jadi draf yang menunggu kamu."
-            aksi={
-              <Lencana nada="aksen">
-                <Bot className="size-3" />
-                Hybrid
-              </Lencana>
-            }
-          />
-          <IsiKartu className="space-y-4">
-            <Kolom label="Mode balas">
-              <Pilih defaultValue="hybrid" disabled>
-                <option value="hybrid">
-                  Hybrid, kirim sendiri kalau yakin
-                </option>
-                <option value="draf">Draf dulu, semua menunggu persetujuan</option>
-                <option value="otomatis">Otomatis penuh</option>
-              </Pilih>
-            </Kolom>
-            <Kolom
-              label="Ambang keyakinan"
-              petunjuk="Di bawah angka ini, balasan tidak dikirim tapi masuk antrean draf. Mulai dari 85 lalu turunkan pelan setelah kamu percaya hasilnya."
-            >
-              <Bidang type="number" defaultValue={85} min={50} max={100} disabled />
-            </Kolom>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Kolom label="Jam aktif mulai">
-                <Bidang type="time" defaultValue="08:00" disabled />
-              </Kolom>
-              <Kolom label="Jam aktif selesai">
-                <Bidang type="time" defaultValue="20:00" disabled />
-              </Kolom>
-            </div>
-            <Kolom
-              label="Pesan di luar jam aktif"
-              petunjuk="Dikirim sekali per percakapan supaya kontak tidak merasa diabaikan."
-            >
-              <AreaTeks
-                disabled
-                defaultValue="Terima kasih sudah menghubungi Seawise Studio. Saat ini di luar jam kerja kami. Pesan Bapak atau Ibu sudah kami catat dan akan dibalas besok pagi mulai pukul 08.00."
-              />
-            </Kolom>
-          </IsiKartu>
-        </Kartu>
-
-        <Kartu className="xl:col-span-2">
           <KepalaKartu
             judul="Kapan AI menyerah ke kamu"
             keterangan="Begitu salah satu terpicu, AI berhenti bicara dan percakapan pindah ke antrean Butuh kamu."
@@ -134,9 +102,10 @@ export default function HalamanPengaturan() {
             <div className="flex items-start gap-3">
               <ShieldAlert className="mt-0.5 size-4 shrink-0 text-tunggu-tinta" />
               <p className="text-xs leading-relaxed text-redup">
-                Aturan eskalasi tidak bisa dimatikan semuanya. Minimal satu
-                harus aktif, kalau tidak tidak ada jalan keluar buat percakapan
-                yang di luar kemampuan AI.
+                Aturan eskalasi belum bisa dimatikan satu per satu. Itu
+                disengaja untuk sekarang: minimal satu harus aktif, kalau tidak
+                tidak ada jalan keluar buat percakapan yang di luar kemampuan
+                AI.
               </p>
             </div>
           </IsiKartu>

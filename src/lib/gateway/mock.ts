@@ -1,4 +1,4 @@
-import type { Gateway, HasilKirim, PermintaanKirim } from "./jenis";
+import type { Gateway, HasilKirim, HasilQr, PermintaanKirim } from "./jenis";
 import { baca_webhook_fonnte } from "./fonnte";
 import { normalkan_nomor } from "./nomor";
 
@@ -40,5 +40,11 @@ export function gateway_mock(): Gateway & { terkirim: PesanTercatat[] } {
     },
 
     baca_webhook: baca_webhook_fonnte,
+
+    async qr(): Promise<HasilQr> {
+      // Gateway tiruan selalu mengaku tersambung, supaya layar pengaturan
+      // bisa dikerjakan dan diuji tanpa akun Fonnte sama sekali.
+      return { keadaan: "tersambung" };
+    },
   };
 }

@@ -1,12 +1,17 @@
 import type {
   Gateway,
   HasilKirim,
+  HasilQr,
   PermintaanKirim,
   PesanMasuk,
 } from "./jenis";
 import { normalkan_nomor } from "./nomor";
 
-const ENDPOINT = "https://api.fonnte.com/send";
+const ENDPOINT_KIRIM = "https://api.fonnte.com/send";
+const ENDPOINT_QR = "https://api.fonnte.com/qr";
+
+/** Fonnte memakai kalimat ini saat perangkatnya sudah tersambung. */
+const PENANDA_TERSAMBUNG = "already connect";
 
 /**
  * Bentuk muatan webhook Fonnte. Fonnte mengirim JSON dan tidak
@@ -99,7 +104,7 @@ export function gateway_fonnte(token: string): Gateway {
 
       let jawaban: Response;
       try {
-        jawaban = await fetch(ENDPOINT, {
+        jawaban = await fetch(ENDPOINT_KIRIM, {
           method: "POST",
           headers: {
             Authorization: token,
@@ -137,5 +142,60 @@ export function gateway_fonnte(token: string): Gateway {
     },
 
     baca_webhook: baca_webhook_fonnte,
+
+    async qr(): Promise<HasilQr> {
+      let jawaban: Response;
+      try {
+        jawaban = await fetch(ENDPOINT_QR, {
+          method: "POST",
+          headers: {
+            Authorization: token,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ type: "qr" }),
+        });
+      } catch (e) {
+        return {
+          keadaan: "gagal",
+          alasan: `Gagal menghubungi Fonnte: ${e instanceof Error ? e.message : String(e)}`,
+        };
+      }
+
+      let hasil: unknown;
+      try {
+        hasil = await jawaban.json();
+      } catch {
+        return {
+          keadaan: "gagal",
+          alasan: `Jawaban Fonnte bukan JSON (HTTP ${jawaban.status})`,
+        };
+      }
+
+      const h = hasil as { status?: unknown; url?: unknown; reason?: unknown };
+      const alasan = teks(h.reason) ?? "";
+
+      // Penolakan karena sudah tersambung itu kabar baik, bukan kegagalan.
+      if (h.status !== true) {
+        if (alasan.toLowerCase().includes(PENANDA_TERSAMBUNG)) {
+          return { keadaan: "tersambung" };
+        }
+        return {
+          keadaan: "gagal",
+          alasan: alasan || `Fonnte menolak (HTTP ${jawaban.status})`,
+        };
+      }
+
+      const gambar = teks(h.url);
+      if (!gambar) {
+        return { keadaan: "gagal", alasan: "Fonnte tidak mengirim gambar QR" };
+      }
+
+      // Fonnte mengirim base64 telanjang. Kalau suatu saat mereka mengubahnya
+      // jadi data URL utuh, jangan sampai awalannya dobel.
+      const data_url = gambar.startsWith("data:")
+        ? gambar
+        : `data:image/png;base64,${gambar}`;
+      return { keadaan: "perlu-scan", gambar: data_url };
+    },
   };
 }

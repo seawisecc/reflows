@@ -28,6 +28,18 @@ export type PermintaanKirim = {
   isi: string;
 };
 
+/**
+ * Keadaan sambungan nomor WhatsApp.
+ *
+ * "perlu-scan" membawa gambar QR sebagai data URL siap pasang di tag img.
+ * Fonnte mengembalikannya sebagai base64 telanjang tanpa awalan, jadi
+ * awalannya ditambahkan di adapter, bukan dibebankan ke lapisan tampilan.
+ */
+export type HasilQr =
+  | { keadaan: "perlu-scan"; gambar: string }
+  | { keadaan: "tersambung" }
+  | { keadaan: "gagal"; alasan: string };
+
 export interface Gateway {
   readonly nama: string;
   kirim(permintaan: PermintaanKirim): Promise<HasilKirim>;
@@ -37,4 +49,10 @@ export interface Gateway {
    * laporan status perangkat atau pesan dari grup.
    */
   baca_webhook(muatan: unknown): PesanMasuk | null;
+  /**
+   * Mengambil QR untuk menyambungkan nomor, atau melaporkan bahwa nomornya
+   * sudah tersambung. Ini sekaligus jadi pemeriksa status: penyedia menolak
+   * memberi QR untuk perangkat yang sudah hidup.
+   */
+  qr(): Promise<HasilQr>;
 }
