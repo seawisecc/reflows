@@ -132,6 +132,48 @@ Dua hal yang gampang terlewat dan sudah ditangani:
   tingkat tabel masih ada. Haknya harus dicabut penuh lalu diberikan lagi
   per kolom.
 
+## Deploy
+
+Aplikasi jalan di Vercel, project `reflows` di tim `seawise`.
+
+```bash
+npm run deploy            # ke produksi
+npm run deploy:pratinjau  # ke URL pratinjau
+```
+
+Variabel lingkungan di Vercel sengaja tidak sama persis dengan `.env.local`:
+
+| Kunci | Production | Preview | Alasan |
+|---|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | ya | ya | Dibutuhkan saat build |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ya | ya | Dijaga RLS, aman terlihat |
+| `SUPABASE_SERVICE_ROLE_KEY` | ya | **tidak** | Melewati semua RLS. URL pratinjau bisa ditebak orang, jadi kunci ini tidak ditaruh di sana |
+| `KUNCI_ENKRIPSI` | ya | tidak | Cuma dipakai membuka token gateway di produksi |
+| `SUPABASE_ACCESS_TOKEN` | tidak | tidak | Cuma untuk CLI di komputer sendiri |
+
+### Domain
+
+`reflows.seawise.id` sudah terpasang di project. Karena nameserver
+`seawise.id` ada di cloudhost.id, catatan DNS-nya ditambahkan di sana, bukan
+di Vercel:
+
+```
+Tipe    CNAME
+Nama    reflows
+Nilai   557dc94d1e6c43e1.vercel-dns-017.com.
+```
+
+### Setelah domain hidup
+
+Webhook harus dijangkau dari internet, jadi alamat di halaman Pengaturan
+berubah jadi `https://reflows.seawise.id/api/wa/masuk/<rahasia>`. Alamat itu
+yang ditempel ke dasbor Fonnte. Selama masih di localhost, Fonnte tidak akan
+pernah bisa mengirim pesan masuk.
+
+Site URL di Supabase juga perlu diganti dari `http://localhost:3000` ke
+domain produksi, supaya tautan di email pemulihan sandi tidak mengarah ke
+komputer sendiri.
+
 ## Impor materi
 
 Halaman Pengetahuan bisa menerima PDF, halaman web, CSV, dan Excel. Claude

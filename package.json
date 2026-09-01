@@ -19,7 +19,9 @@
     "uji-webhook": "tsx skrip/uji-webhook.ts",
     "uji-auth": "tsx skrip/uji-auth.ts",
     "bersihkan-contoh": "tsx skrip/bersihkan-contoh.ts",
-    "periksa-aksi": "tsx skrip/periksa-aksi.ts"
+    "periksa-aksi": "tsx skrip/periksa-aksi.ts",
+    "deploy": "vercel --prod --yes",
+    "deploy:pratinjau": "vercel --yes"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
