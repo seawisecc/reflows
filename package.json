@@ -17,7 +17,8 @@
     "siapkan-tenant": "tsx skrip/siapkan-tenant.ts",
     "buat-pengguna": "tsx skrip/buat-pengguna.ts",
     "uji-webhook": "tsx skrip/uji-webhook.ts",
-    "uji-auth": "tsx skrip/uji-auth.ts"
+    "uji-auth": "tsx skrip/uji-auth.ts",
+    "bersihkan-contoh": "tsx skrip/bersihkan-contoh.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

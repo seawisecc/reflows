@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Bot, Search, Send, TriangleAlert, User } from "lucide-react";
+import { kirim_balasan, ubah_status, type KeadaanKirim } from "@/app/(aplikasi)/percakapan/aksi";
 import type { Percakapan, StatusPercakapan } from "@/tipe";
 import { cn, jam, waktu_relatif } from "@/lib/utils";
 import { Lencana, TitikStatus, type NadaLencana } from "@/komponen/ui/lencana";
@@ -27,7 +28,109 @@ const SARINGAN = [
 
 type Saringan = (typeof SARINGAN)[number]["kunci"];
 
-export function Inbox({ percakapan }: { percakapan: Percakapan[] }) {
+const AWAL_KIRIM: KeadaanKirim = { galat: null, terkirim: false };
+
+/**
+ * Kotak tulis balasan. Dipisah jadi komponen sendiri supaya keadaan
+ * pengirimannya ikut disetel ulang setiap ganti percakapan, lewat key di
+ * pemanggilnya. Tanpa itu, pesan galat dari percakapan sebelumnya nempel
+ * di percakapan yang baru dibuka.
+ */
+function Pengarang({
+  percakapan_id,
+  bisa_kirim,
+  alasan_tidak_bisa,
+}: {
+  percakapan_id: string;
+  bisa_kirim: boolean;
+  alasan_tidak_bisa: string | null;
+}) {
+  const [keadaan, aksi, menunggu] = React.useActionState(
+    kirim_balasan,
+    AWAL_KIRIM,
+  );
+  const acuan = React.useRef<HTMLFormElement>(null);
+
+  React.useEffect(() => {
+    if (keadaan.terkirim) acuan.current?.reset();
+  }, [keadaan.terkirim]);
+
+  return (
+    <form ref={acuan} action={aksi} className="border-t-2 border-garis p-3">
+      <input type="hidden" name="percakapan_id" value={percakapan_id} />
+      <div className="flex items-end gap-2">
+        <Bidang
+          name="isi"
+          placeholder={
+            bisa_kirim ? "Ketik balasan" : (alasan_tidak_bisa ?? "Tidak bisa dikirim")
+          }
+          disabled={!bisa_kirim || menunggu}
+          aria-label="Balasan"
+          maxLength={4096}
+        />
+        <Tombol
+          type="submit"
+          ukuran="sedang"
+          disabled={!bisa_kirim || menunggu}
+          className="shrink-0"
+        >
+          <Send className="size-3.5" />
+          {menunggu ? "Mengirim" : "Kirim"}
+        </Tombol>
+      </div>
+
+      {keadaan.galat ? (
+        <p
+          role="alert"
+          className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-gagal-tinta"
+        >
+          <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+          {keadaan.galat}
+        </p>
+      ) : (
+        <p className="mt-2 text-xs text-redup">
+          {bisa_kirim
+            ? "Begitu kamu membalas, percakapan dipegang kamu sampai dilepas lagi ke AI."
+            : (alasan_tidak_bisa ?? "")}
+        </p>
+      )}
+    </form>
+  );
+}
+
+function TombolStatus({
+  percakapan_id,
+  status,
+}: {
+  percakapan_id: string;
+  status: StatusPercakapan;
+}) {
+  const [menunggu, mulai] = React.useTransition();
+  const ambil_alih = status !== "manual";
+
+  return (
+    <Tombol
+      varian="garis"
+      ukuran="kecil"
+      disabled={menunggu}
+      onClick={() =>
+        mulai(async () => {
+          await ubah_status(percakapan_id, ambil_alih ? "manual" : "ai");
+        })
+      }
+    >
+      {menunggu ? "Sebentar" : ambil_alih ? "Ambil alih" : "Kembalikan ke AI"}
+    </Tombol>
+  );
+}
+
+export function Inbox({
+  percakapan,
+  bisa_kirim = true,
+}: {
+  percakapan: Percakapan[];
+  bisa_kirim?: boolean;
+}) {
   const [saringan, setSaringan] = React.useState<Saringan>("semua");
   const [cari, setCari] = React.useState("");
   const [terpilih, setTerpilih] = React.useState<string>(
@@ -161,9 +264,7 @@ export function Inbox({ percakapan }: { percakapan: Percakapan[] }) {
                 <Lencana nada={RUPA_STATUS[aktif.status].nada}>
                   {RUPA_STATUS[aktif.status].label}
                 </Lencana>
-                <Tombol varian="garis" ukuran="kecil" disabled>
-                  {aktif.status === "manual" ? "Kembalikan ke AI" : "Ambil alih"}
-                </Tombol>
+                <TombolStatus percakapan_id={aktif.id} status={aktif.status} />
               </div>
             </div>
 
@@ -228,22 +329,18 @@ export function Inbox({ percakapan }: { percakapan: Percakapan[] }) {
               })}
             </ol>
 
-            <div className="border-t-2 border-garis p-3">
-              <div className="flex items-end gap-2">
-                <Bidang
-                  placeholder="Ketik balasan, atau minta AI membuat draf"
-                  disabled
-                  aria-label="Balasan"
-                />
-                <Tombol ukuran="sedang" disabled className="shrink-0">
-                  <Send className="size-3.5" />
-                  Kirim
-                </Tombol>
-              </div>
-              <p className="mt-2 text-xs text-redup">
-                Pengiriman aktif setelah gateway WhatsApp tersambung di Fase 1.
-              </p>
-            </div>
+            <Pengarang
+              key={aktif.id}
+              percakapan_id={aktif.id}
+              bisa_kirim={bisa_kirim && !aktif.kontak.opt_out_at}
+              alasan_tidak_bisa={
+                aktif.kontak.opt_out_at
+                  ? "Kontak ini sudah minta berhenti dihubungi."
+                  : !bisa_kirim
+                    ? "Ini data contoh, belum tersambung ke WhatsApp."
+                    : null
+              }
+            />
           </>
         ) : (
           <Kosong

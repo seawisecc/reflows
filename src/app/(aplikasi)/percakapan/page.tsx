@@ -42,7 +42,7 @@ export default async function HalamanPercakapan() {
             />
           </Kartu>
         ) : (
-          <Inbox percakapan={daftar} />
+          <Inbox percakapan={daftar} bisa_kirim={sumber === "supabase"} />
         )}
       </main>
     </>

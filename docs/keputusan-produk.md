@@ -67,6 +67,16 @@ Setengah dari mesin outbound isinya justru rem, bukan gas:
 - STOP dan BERHENTI masuk daftar berhenti permanen
 - Rem otomatis kalau rasio balasan anjlok
 
+## Login WhatsApp
+
+Fonnte menyediakan endpoint `POST https://api.fonnte.com/qr` yang
+mengembalikan QR sebagai PNG base64, dan menjawab "device already connect"
+kalau nomornya sudah tersambung. Artinya pemindaian QR bisa dilakukan di
+dalam Reflows, tenant tidak perlu membuka dasbor Fonnte sama sekali.
+
+Yang tetap harus dilakukan tenant di Fonnte cuma sekali: mendaftar dan
+menyalin token perangkatnya.
+
 ## Model AI
 
 - Balasan rutin memakai `claude-haiku-4-5`, 1 dolar per juta token masuk dan
@@ -107,7 +117,7 @@ angka langsung di atas batang, dan tombol untuk melihat versi tabelnya.
 | Fase | Isi | Status |
 |---|---|---|
 | 0 | Fondasi, skema, RLS, design system dua tema, kerangka dasbor | Selesai |
-| 1 | Adapter gateway, webhook, autentikasi, inbox nyata | Sebagian besar selesai, sisa kirim manual |
+| 1 | Adapter gateway, webhook, autentikasi, inbox nyata, kirim manual | Selesai |
 | 2 | Mesin AI, knowledge base, eskalasi | Belum |
 | 3 | Outbound: kontak, kampanye, sequence, anti-ban | Belum |
 | 4 | Invoice PDF dan pengirimannya lewat WhatsApp | Belum |
