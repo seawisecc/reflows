@@ -67,6 +67,24 @@ Setengah dari mesin outbound isinya justru rem, bukan gas:
 - STOP dan BERHENTI masuk daftar berhenti permanen
 - Rem otomatis kalau rasio balasan anjlok
 
+## Watermark Fonnte dan pengaruhnya ke harga jual
+
+Paket Fonnte selain Master dan Ultra menempelkan tulisan "Sent via
+fonnte.com" di setiap pesan keluar. Tulisan itu ditambahkan di server
+Fonnte, jadi tidak bisa dihilangkan dari sisi Reflows.
+
+Harga di halaman Fonnte saat diperiksa: Master Rp 175.000 dan Ultra
+Rp 355.000 per bulan, keduanya kuota tanpa batas.
+
+Ini menyentuh model bisnis, bukan cuma tampilan. Karena setiap tenant
+memakai akun Fonnte-nya sendiri, biaya itu ditanggung tenant, bukan Seawise.
+Yang perlu disampaikan saat menjual Reflows: paket gratis Fonnte cukup untuk
+mencoba, tapi untuk dipakai ke client sungguhan mereka perlu naik paket,
+kalau tidak setiap balasan ke client mereka membawa iklan gateway.
+
+Peringatan ini muncul sendiri di halaman Pengaturan begitu paket perangkat
+terbaca bukan Master atau Ultra.
+
 ## Login WhatsApp
 
 Fonnte menyediakan endpoint `POST https://api.fonnte.com/qr` yang

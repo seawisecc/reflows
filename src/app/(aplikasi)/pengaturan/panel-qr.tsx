@@ -18,6 +18,13 @@ import { waktu_relatif } from "@/lib/utils";
 import type { Pengaturan } from "@/lib/data/pengaturan";
 
 /**
+ * Paket Fonnte yang tidak menempelkan tulisan promosi di pesan keluar.
+ * Selain ini, setiap pesan yang sampai ke client membawa "Sent via
+ * fonnte.com", dan itu terlihat tidak profesional untuk nomor bisnis.
+ */
+const PAKET_TANPA_WATERMARK = ["Master", "Ultra"];
+
+/**
  * Panel sambungan WhatsApp.
  *
  * Status yang tersimpan ditampilkan lebih dulu, jadi begitu halaman dibuka
@@ -126,6 +133,16 @@ export function PanelQr({ awal }: { awal: Pengaturan }) {
       ) : null}
 
       <IsiKartu className="space-y-4">
+        {tersambung && paket && !PAKET_TANPA_WATERMARK.includes(paket) ? (
+          <p className="flex items-start gap-2 text-xs leading-relaxed text-tunggu-tinta">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+            Paket Fonnte {paket} menambahkan tulisan &quot;Sent via
+            fonnte.com&quot; di setiap pesan keluar. Tulisan itu ditambahkan di
+            server Fonnte, jadi tidak bisa dihilangkan dari sini. Kalau
+            mengganggu, naikkan paket ke Master atau Ultra di dasbor Fonnte.
+          </p>
+        ) : null}
+
         {periksa?.ok === true && periksa.nomor_diselaraskan ? (
           <p
             role="status"
