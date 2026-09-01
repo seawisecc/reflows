@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "periksa": "npm run lint && npx tsc --noEmit && npm test && npm run build",
+    "periksa": "npm run lint && npx tsc --noEmit && npm run periksa-aksi && npm test && npm run build",
     "sb": "sh skrip/sb.sh",
     "db:push": "sh skrip/sb.sh db push",
     "db:diff": "sh skrip/sb.sh db diff",
@@ -18,12 +18,15 @@
     "buat-pengguna": "tsx skrip/buat-pengguna.ts",
     "uji-webhook": "tsx skrip/uji-webhook.ts",
     "uji-auth": "tsx skrip/uji-auth.ts",
-    "bersihkan-contoh": "tsx skrip/bersihkan-contoh.ts"
+    "bersihkan-contoh": "tsx skrip/bersihkan-contoh.ts",
+    "periksa-aksi": "tsx skrip/periksa-aksi.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
     "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.38.0",
     "next": "16.3.4",
     "react": "19.2.8",

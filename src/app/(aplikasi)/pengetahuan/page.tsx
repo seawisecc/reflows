@@ -1,13 +1,20 @@
-import { BookOpen, MessageCircleQuestion, Palette, ShieldBan } from "lucide-react";
+import {
+  BookOpen,
+  MessageCircleQuestion,
+  Palette,
+  ShieldBan,
+} from "lucide-react";
 import { BilahAtas } from "@/komponen/shell/bilah-atas";
 import { Kartu, KepalaKartu } from "@/komponen/ui/kartu";
-import { Tombol } from "@/komponen/ui/tombol";
+import { Kosong } from "@/komponen/ui/kosong";
 import { Lencana } from "@/komponen/ui/lencana";
-import { PENGETAHUAN } from "@/lib/contoh-data";
-import { rupiah } from "@/lib/utils";
+import { ambil_pengetahuan } from "@/lib/data/pengetahuan";
+import { PanelImpor } from "./panel-impor";
+import { BarisMateri } from "./daftar";
 import type { TipePengetahuan } from "@/tipe";
 
 export const metadata = { title: "Pengetahuan | Reflows" };
+export const dynamic = "force-dynamic";
 
 const BAGIAN: {
   tipe: TipePengetahuan;
@@ -43,63 +50,64 @@ const BAGIAN: {
   },
 ];
 
-export default function HalamanPengetahuan() {
+export default async function HalamanPengetahuan() {
+  const { daftar, sumber } = await ambil_pengetahuan();
+  const nyata = sumber === "supabase";
+
   return (
     <>
       <BilahAtas
         judul="Pengetahuan"
-        keterangan="Materi yang dibaca AI sebelum menyusun setiap balasan"
+        keterangan={`${daftar.length} butir materi yang dibaca AI sebelum membalas`}
+        aksi={
+          !nyata ? (
+            <Lencana nada="tunggu" className="hidden lg:inline-flex">
+              Data contoh
+            </Lencana>
+          ) : null
+        }
       />
       <main className="space-y-6 p-4 sm:p-6">
         <Kartu className="p-4">
           <p className="text-xs leading-relaxed text-redup">
             Isi halaman ini disusun jadi satu instruksi tetap untuk AI dan
             disimpan di cache, jadi bagian yang sama tidak dibayar ulang setiap
-            balasan. Makin rinci daftar layanan dan harganya, makin jarang AI
-            perlu bertanya ke kamu.
+            balasan. Dokumen aslinya sengaja tidak ikut dibaca tiap kali:
+            menyuapkan PDF dua puluh halaman ke setiap balasan itu mahal, dan
+            model bisa salah membaca baris tabel harga.
           </p>
         </Kartu>
 
-        {BAGIAN.map((b) => {
-          const butir = PENGETAHUAN.filter((p) => p.tipe === b.tipe);
-          const Ikon = b.ikon;
-          return (
-            <Kartu key={b.tipe}>
-              <KepalaKartu
-                judul={b.judul}
-                keterangan={b.keterangan}
-                aksi={
-                  <Tombol varian="garis" ukuran="kecil" disabled>
-                    Tambah
-                  </Tombol>
-                }
-              />
-              <ul className="divide-y-2 divide-[var(--garis)]">
-                {butir.map((p) => (
-                  <li key={p.id} className="flex gap-3 px-4 py-3">
-                    <Ikon className="mt-0.5 size-4 shrink-0 text-redup" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <h3 className="text-sm text-teks">{p.judul}</h3>
-                        {p.harga !== null ? (
-                          <span className="angka text-sm font-bold text-aksen-tinta">
-                            {rupiah(p.harga)}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1.5 text-xs leading-relaxed text-redup">
-                        {p.isi}
-                      </p>
-                    </div>
-                    <Lencana nada={p.aktif ? "sukses" : "netral"}>
-                      {p.aktif ? "Aktif" : "Nonaktif"}
-                    </Lencana>
-                  </li>
-                ))}
-              </ul>
-            </Kartu>
-          );
-        })}
+        {nyata ? <PanelImpor /> : null}
+
+        {daftar.length === 0 ? (
+          <Kartu>
+            <Kosong
+              ikon={BookOpen}
+              judul="Materi masih kosong"
+              keterangan="Unggah daftar harga atau tempel alamat halaman layananmu di atas, biar AI punya bahan untuk menjawab."
+            />
+          </Kartu>
+        ) : (
+          BAGIAN.map((b) => {
+            const butir = daftar.filter((p) => p.tipe === b.tipe);
+            if (butir.length === 0) return null;
+            return (
+              <Kartu key={b.tipe}>
+                <KepalaKartu
+                  judul={b.judul}
+                  keterangan={b.keterangan}
+                  aksi={<Lencana nada="netral">{butir.length} butir</Lencana>}
+                />
+                <ul className="divide-y-2 divide-[var(--garis)]">
+                  {butir.map((p) => (
+                    <BarisMateri key={p.id} butir={p} bisa_diubah={nyata} />
+                  ))}
+                </ul>
+              </Kartu>
+            );
+          })
+        )}
       </main>
     </>
   );

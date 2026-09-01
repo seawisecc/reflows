@@ -77,6 +77,25 @@ dalam Reflows, tenant tidak perlu membuka dasbor Fonnte sama sekali.
 Yang tetap harus dilakukan tenant di Fonnte cuma sekali: mendaftar dan
 menyalin token perangkatnya.
 
+## Impor materi dari dokumen
+
+Materi bisa diimpor dari PDF, halaman web, CSV, dan Excel. Dokumen dibaca
+sekali oleh Claude, hasilnya ditinjau pemilik, lalu yang tersimpan cuma entri
+terstruktur. Dokumen mentahnya tidak pernah jadi bahan balasan harian.
+
+Alasannya tiga, dan semuanya soal uang atau akurasi:
+
+1. Menyuapkan PDF dua puluh halaman ke setiap balasan itu dibayar berulang.
+2. Model bisa salah membaca baris tabel harga. Sekali salah, angka itu
+   diulang ke setiap calon client sesudahnya.
+3. Awalan yang berubah-ubah merusak prompt caching.
+
+Karena itu ekstraksi memakai model paling mampu, bukan yang paling murah:
+jalannya cuma sekali per dokumen, sedangkan akibat salah bacanya menetap.
+
+Harga yang tidak tertulis jelas di sumber dikembalikan sebagai kosong, bukan
+ditebak, dan disebutkan di daftar keraguan supaya pemilik memeriksanya.
+
 ## Model AI
 
 - Balasan rutin memakai `claude-haiku-4-5`, 1 dolar per juta token masuk dan
@@ -118,7 +137,7 @@ angka langsung di atas batang, dan tombol untuk melihat versi tabelnya.
 |---|---|---|
 | 0 | Fondasi, skema, RLS, design system dua tema, kerangka dasbor | Selesai |
 | 1 | Adapter gateway, webhook, autentikasi, inbox nyata, kirim manual | Selesai |
-| 2 | Mesin AI, knowledge base, eskalasi | Belum |
+| 2 | Mesin AI, knowledge base, eskalasi | Impor materi selesai, mesin balasan belum |
 | 3 | Outbound: kontak, kampanye, sequence, anti-ban | Belum |
 | 4 | Invoice PDF dan pengirimannya lewat WhatsApp | Belum |
 | 5 | Dasbor pemilik, monitoring lintas tenant, billing | Belum |

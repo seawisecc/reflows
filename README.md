@@ -46,7 +46,8 @@ tertimpa.
 | `npm run build` | Build produksi |
 | `npm run lint` | ESLint |
 | `npm test` | Tes unit dan uji skema terhadap PostgreSQL lewat PGlite |
-| `npm run periksa` | Lint, typecheck, tes, dan build sekaligus |
+| `npm run periksa` | Lint, typecheck, pemeriksa Server Action, tes, dan build |
+| `npm run periksa-aksi` | Memastikan berkas Server Action cuma mengekspor fungsi async |
 | `npm run periksa:produksi` | Memeriksa database Supabase yang sungguhan |
 | `npm run uji-webhook` | Uji jalur webhook dari ujung ke ujung |
 | `npm run uji-auth` | Uji sesi pengguna dan isolasi antar tenant |
@@ -130,6 +131,18 @@ Dua hal yang gampang terlewat dan sudah ditangani:
 - Mencabut hak baca satu kolom tidak menyembunyikan kolom itu selama hak di
   tingkat tabel masih ada. Haknya harus dicabut penuh lalu diberikan lagi
   per kolom.
+
+## Impor materi
+
+Halaman Pengetahuan bisa menerima PDF, halaman web, CSV, dan Excel. Claude
+membacanya sekali menjadi entri terstruktur, pemilik meninjau dan mengoreksi,
+baru tersimpan. Dokumen mentah tidak pernah ikut dibaca saat membalas chat.
+
+Pengambilan halaman web adalah permukaan serangan yang serius: alamatnya
+ditentukan pengguna, tapi yang mengambil adalah server kita. Karena itu
+setiap alamat diperiksa sampai ke nomor IP hasil resolusi DNS, semua rentang
+jaringan dalam ditolak termasuk 169.254.169.254 milik metadata cloud, dan
+setiap pengalihan diikuti satu per satu dengan pemeriksaan yang sama.
 
 ## Keamanan webhook
 
