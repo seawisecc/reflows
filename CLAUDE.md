@@ -64,6 +64,7 @@ src/komponen/shell/   Bilah sisi, bilah atas, tombol tema
 src/lib/ai/           Peta kemampuan model, penyusun instruksi, mesin balasan
 src/lib/kampanye/     Aturan anti-ban dan antrean kampanye keluar
 src/lib/invoice/      Aritmetika invoice, penyusun PDF, penyimpanan berkas
+src/lib/paket.ts      Definisi paket langganan dan aturan kuota
 src/lib/gateway/      Adapter WhatsApp: jenis, nomor, fonnte, mock
 src/lib/impor/        Impor materi dari PDF, web, dan spreadsheet
 src/lib/data/         Pembacaan data lewat sesi pengguna (kena RLS)
@@ -165,19 +166,21 @@ Dua hal yang berbeda dan sering tertukar:
 | `peran` (pemilik, admin, staf) | Di dalam satu tenant | Belum dipakai membatasi apa pun |
 | `super_admin` (boolean) | Seluruh platform | Membuka pembacaan lintas tenant di RLS |
 
-`super_admin` muncul di klausa `using` semua kebijakan, jadi pemegangnya
-bisa **membaca dan menghapus** baris tenant mana pun. Tapi tidak ada di
-klausa `with check`, jadi dia **tidak bisa menyisipkan** data ke tenant lain.
+`super_admin` sekarang **hanya membuka pembacaan**. Kebijakan tiap tabel
+dipecah jadi empat: `_baca` menyebut super admin, sedangkan `_sisip`,
+`_ubah`, dan `_hapus` cuma menyebut tenant sendiri. Sebelum diperketat,
+kebijakannya `for all` dengan super admin di klausa `using`, jadi
+pemegangnya bisa menghapus seluruh riwayat percakapan pelanggan mana pun
+dari sesi browser biasa.
 
-Belum ada satu halaman pun yang memakainya. Antarmuka pemilik platform baru
-digarap di Fase 5.
+Kalau memang perlu memperbaiki data pelanggan, jalurnya lewat service role
+dengan skrip yang tercatat, bukan lewat browser.
 
 Akun `seawise.cc@gmail.com` berperan `pemilik` dengan `super_admin = false`.
 Itu disengaja: akun harian sebaiknya tidak memegang kunci ke data semua
-pelanggan. Nanti dibuat akun terpisah khusus administrasi platform.
-
-Yang perlu diperketat di Fase 5: hak hapus lintas tenant terlalu longgar
-untuk pekerjaan dukungan.
+pelanggan. Halaman `/platform` sudah ada dan bekerja untuk akun mana pun,
+cuma isinya disaring RLS: akun biasa melihat tenantnya sendiri, super admin
+melihat semuanya. Akun administrasi platform yang terpisah belum dibuat.
 
 ---
 
@@ -283,7 +286,7 @@ Dicatat supaya tidak terulang.
 | 2 | Mesin balasan AI, impor materi, eskalasi | Selesai |
 | 3 | Kampanye keluar, sequence, anti-ban | Selesai |
 | 4 | Invoice PDF dan pengirimannya lewat WhatsApp | Selesai |
-| 5 | Dasbor pemilik platform, monitoring lintas tenant, billing | Belum |
+| 5 | Dasbor pemilik platform, monitoring lintas tenant, billing | Selesai |
 
 ### Yang sudah hidup di produksi
 
@@ -302,6 +305,9 @@ dijawab 200 lewat `npm run periksa-cron`.
 Invoice bisa disusun dari daftar layanan, jadi PDF, lalu dikirim ke
 WhatsApp beserta ringkasan tagihan. Terbukti dengan invoice sungguhan yang
 diterbitkan di produksi lalu diunduh lewat tautan bertanda tangannya.
+
+Kuota paket sudah dipaksakan mesin. Diperiksa sebelum model dipanggil,
+bukan sesudah, karena memanggil model lalu membuang hasilnya tetap dibayar.
 
 Urutan keputusan mesin balasan:
 
@@ -334,7 +340,8 @@ bertambah.
 - **Watermark Fonnte**: paket selain Master dan Ultra menempelkan "Sent via
   fonnte.com" di setiap pesan. Ini menyentuh cara menjual Reflows, bukan
   cuma tampilan.
-- **Hak super admin** perlu diperketat sebelum ada tenant kedua.
+- **Akun administrasi platform** yang terpisah dari akun harian belum
+  dibuat. Sampai itu ada, `/platform` cuma menampilkan satu tenant.
 - **Site URL Supabase** sudah diganti ke domain produksi.
 - **Mematikan layanan sudah bisa**, dan terbukti bolak-balik di produksi:
   dijeda, pesan client tetap tercatat tanpa dibalas, dinyalakan lagi, AI
@@ -345,9 +352,13 @@ bertambah.
 - **Identitas invoice belum diisi.** Alamat bisnis dan nomor rekening kosong
   di Pengaturan, jadi PDF yang terbit sekarang tidak memuat cara pembayaran
   dan client harus menanyakannya lagi.
-- **Paket langganan** sudah dihitung, ada di `docs/keputusan-produk.md`.
-  Mulai Rp 349.000, Tumbuh Rp 749.000, Penuh Rp 1.490.000. Yang belum ada:
-  penghitung balasan bulanan dan remnya, tanpa itu kuota cuma janji.
+- **Materi AI sudah diselaraskan dengan seawise.id** pada 2 September 2026.
+  Empat paket website Shore, Reef, Current, dan Trench beserta harganya,
+  ditambah tujuh FAQ dan lima keterangan dari situs. Materi lama yang
+  bertabrakan dinonaktifkan, bukan dihapus, jadi masih bisa dihidupkan lagi
+  kalau ternyata memang dijual.
+- **Paket langganan** sudah dipaksakan mesin. Definisinya di
+  `src/lib/paket.ts`, alasannya di `docs/keputusan-produk.md`.
 - **Variabel lingkungan Preview** belum diisi, jadi deployment dari branch
   akan gagal. Sengaja: mengisinya berarti preview bisa menulis ke database
   produksi.

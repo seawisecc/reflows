@@ -391,3 +391,49 @@ invoice yang tautannya mati sehari kemudian terlihat seperti penipuan.
 - **Tidak ada pencatatan pembayaran sebagian.** Lunas atau belum saja.
   Menambah pelunasan bertahap berarti menambah buku besar kecil, dan itu
   produk yang berbeda.
+
+## Kuota paket, dan kenapa habisnya tidak mematikan AI
+
+Kuota diperiksa sebelum model dipanggil, bukan sesudah. Memanggil model lalu
+membuang hasilnya tetap dibayar, dan itu persis biaya yang kuotanya
+seharusnya cegah.
+
+Tapi kuota yang habis **tidak** langsung mematikan AI. Client yang tidak
+dibalas lebih merugikan tenant daripada tagihan kelebihan yang wajar, dan
+tarif kelebihan sudah dua setengah kali biayanya jadi tenant yang boros
+tetap menambah untung, bukan mengurangi.
+
+Yang membatasi justru angka yang dipasang tenant sendiri, kolom
+`batas_kelebihan` di Pengaturan. Kosong berarti tanpa batas, nol berarti AI
+berhenti tepat saat kuota habis. Keduanya pilihan yang sah, dan yang tidak
+sah adalah memilihkannya diam-diam untuk tenant. Karena itu angka
+pemakaiannya terlihat sepanjang bulan, dengan peringatan menyala di 80
+persen, supaya tidak ada yang kaget di akhir.
+
+Pemakaian dihitung ulang dari tabel `jalan_ai` tiap kali diminta, bukan dari
+penghitung yang disimpan sendiri. Penghitung tersimpan bisa melenceng begitu
+ada satu jalur yang lupa menaikkannya, dan melencengnya baru ketahuan saat
+menagih.
+
+Semua panggilan AI dihitung, termasuk yang berakhir jadi draf maupun
+eskalasi. Modelnya tetap dipanggil dan tetap dibayar, jadi tetap memakan
+kuota.
+
+## Super admin jadi baca saja
+
+Kebijakan RLS lama memakai `for all` dengan `saya_super_admin()` di klausa
+`using`. Akibatnya pemegang super admin bukan cuma bisa membaca data tenant
+mana pun, tapi juga mengubah dan menghapusnya, dari sesi browser biasa.
+Untuk pekerjaan dukungan itu terlalu longgar: satu salah klik atau satu akun
+yang bocor bisa menghapus seluruh riwayat percakapan pelanggan.
+
+Sekarang tiap tabel punya empat kebijakan. Yang `_baca` menyebut super
+admin, yang `_sisip`, `_ubah`, dan `_hapus` tidak. Kalau memang perlu
+memperbaiki data pelanggan, jalurnya lewat service role dengan skrip yang
+tercatat.
+
+Halaman `/platform` mengikuti pendirian yang sama: tidak ada pemeriksaan
+peran di TypeScript sama sekali. Fungsi SQL-nya `security invoker`, jadi RLS
+yang menyaring, dan akun biasa yang membukanya cuma melihat tenantnya
+sendiri. Menambahkan pemeriksaan peran di aplikasi hanya menciptakan gerbang
+kedua yang suatu saat akan berbeda pendapat dengan gerbang pertama.
