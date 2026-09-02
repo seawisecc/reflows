@@ -170,3 +170,52 @@ angka langsung di atas batang, dan tombol untuk melihat versi tabelnya.
 | 3 | Outbound: kontak, kampanye, sequence, anti-ban | Belum |
 | 4 | Invoice PDF dan pengirimannya lewat WhatsApp | Belum |
 | 5 | Dasbor pemilik, monitoring lintas tenant, billing | Belum |
+
+## Tiga paket langganan dan hitungan marjinnya
+
+Disusun dari biaya terukur, bukan perkiraan. Empat balasan pertama di
+produksi menghabiskan 6.372 token masuk dan 533 token keluar, jadi $0,0090
+seluruhnya, atau **$0,00226 per balasan, sekitar Rp 37**.
+
+Semua hitungan paket memakai **Rp 80 per balasan**, yaitu dua kali lipat
+angka terukur. Itu mengandaikan instruksi tetap 3.000 token, percakapan 800
+token, balasan 200 token, dan prompt caching tidak pernah kena sama sekali.
+Kalau nyatanya lebih murah, marjinnya lebih besar, bukan lebih kecil.
+
+| Paket | Harga per bulan | Balasan AI | Kelebihan | Biaya AI penuh | Marjin |
+|---|---|---|---|---|---|
+| Mulai | Rp 349.000 | 750 | Rp 300 | Rp 60.000 | Rp 289.000 (83%) |
+| Tumbuh | Rp 749.000 | 2.500 | Rp 250 | Rp 200.000 | Rp 549.000 (73%) |
+| Penuh | Rp 1.490.000 | 8.000 | Rp 200 | Rp 640.000 | Rp 850.000 (57%) |
+
+Biaya tetap Seawise adalah Supabase Pro dan Vercel Pro, sekitar Rp 742.500
+sebulan. Tiga tenant paket Mulai sudah menutupnya. Tarif kelebihan kuota
+yang paling murah, Rp 200, masih dua setengah kali biaya Rp 80, jadi tenant
+boros tetap menambah untung.
+
+Fonnte sengaja tetap atas nama tenant, seperti sekarang. Kalau Seawise yang
+membelikan, Rp 175.000 per tenant langsung menggerus marjin, dan Seawise
+ikut menanggung pekerjaan mengurus akun gateway orang lain.
+
+### Empat cara paket ini bisa boncos
+
+1. **Menaikkan model tanpa menaikkan harga.** Sonnet 5 dua kali lipat harga
+   Haiku di kedua arah, jadi sekitar Rp 160 per balasan. Paket Penuh yang
+   terpakai habis menyisakan marjin 14 persen. Sonnet harus jadi tambahan
+   berbayar, jangan masuk paket bawaan.
+2. **Materi admin yang terlalu gemuk.** Instruksi tetap ikut dikirim di
+   setiap balasan. Materi 10.000 token tanpa cache membuat biaya naik jadi
+   sekitar Rp 175 per balasan, dan marjin paket Penuh tinggal 6 persen.
+3. **Kuota yang tidak dipaksakan mesin.** `tenants.paket` masih berisi basic
+   dan pro, dan tidak dipakai satu baris kode pun. Belum ada penghitung
+   balasan bulanan. Selama itu, angka kuota cuma janji di brosur.
+4. **Waktu manusia.** Satu jam membantu tenant memasang nomor lebih mahal
+   daripada seluruh biaya AI paket Mulai sebulan. Karena itu dukungan paket
+   Mulai sengaja lewat email saja, dan pemasangan dibuat bisa dikerjakan
+   sendiri lewat QR di halaman Pengaturan.
+
+### Yang harus digarap sebelum paket ini dijual
+
+Semuanya Fase 5: mengganti enum `paket_langganan`, penghitung balasan
+bulanan beserta remnya, layar tagihan untuk tenant, dasbor pemilik platform,
+dan akun administrasi platform yang terpisah dari akun harian.

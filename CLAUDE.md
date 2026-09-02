@@ -113,6 +113,12 @@ Sembilan tabel, semuanya membawa `tenant_id` dan dijaga RLS:
 `tenants`, `pengguna`, `pengaturan_tenant`, `pengetahuan`, `kontak`,
 `percakapan`, `pesan`, `jalan_ai`, `log_audit`.
 
+Dua fungsi menghitung angka layar di dalam database dan mengembalikan satu
+jsonb: `ringkasan_dasbor()` dan `penggunaan_ai()`. Keduanya `security
+invoker`, jadi RLS tetap yang menyaring tenant. Kalau salah satu dijadikan
+`security definer`, angka semua pelanggan bocor, dan `npm test` memang
+menangkapnya.
+
 Kebijakan RLS bertumpu pada `public.tenant_saya()` yang `SECURITY DEFINER`,
 supaya pembacaan tabel `pengguna` di dalamnya tidak ikut kena RLS.
 
@@ -193,6 +199,19 @@ Dicatat supaya tidak terulang.
 10. **Nomor uji memakai kode negara 999** yang dicadangkan ITU. Sejak mesin
     balasan menyala, nomor uji berprefix Indonesia berarti orang asing
     menerima pesan dari nomor bisnis tenant.
+11. **Region fungsi Vercel harus dipatok `sin1`** di `vercel.json`. Bawaannya
+    `iad1`, sedangkan Supabase di `ap-southeast-1`, jadi tiap query
+    menyeberangi Pasifik dan satu halaman bisa menumpuk lebih dari sedetik
+    jeda jaringan murni. Diperiksa lewat header `x-vercel-id`, bagian
+    keduanya adalah region fungsinya.
+12. **Bilah sisi harus dirender di layout, bukan di dalam bilah atas tiap
+    halaman.** Layout Next.js tidak dirender ulang saat pindah antar halaman
+    di dalamnya, jadi profil pengguna dibaca sekali per muat penuh. Waktu
+    masih di bilah atas, tiap klik menu menunggu dua query yang hasilnya
+    sama persis.
+13. **`to_char` di Postgres selalu memberi nama hari Inggris**, tidak peduli
+    locale server. Diterjemahkan di aplikasi, bukan dengan menggeser
+    `lc_time` yang berlaku untuk seluruh project.
 
 ---
 
@@ -211,6 +230,11 @@ Dicatat supaya tidak terulang.
 
 Pesan WhatsApp masuk lewat Fonnte, AI menyusun balasan dari materi admin,
 lalu mengirimkannya kembali. Terbukti dengan chat sungguhan.
+
+Dasbor, Percakapan, Kontak, Pengetahuan, dan Penggunaan semuanya membaca
+data sungguhan. Tidak ada lagi layar yang menampilkan angka karangan.
+Percakapan dan dasbor menyegar sendiri lewat `router.refresh()` berkala,
+yang berhenti saat tab tidak terlihat.
 
 Urutan keputusan mesin balasan:
 
@@ -249,6 +273,12 @@ bertambah.
   cuma tampilan.
 - **Hak super admin** perlu diperketat sebelum ada tenant kedua.
 - **Site URL Supabase** sudah diganti ke domain produksi.
+- **Paket langganan** sudah dihitung, ada di `docs/keputusan-produk.md`.
+  Mulai Rp 349.000, Tumbuh Rp 749.000, Penuh Rp 1.490.000. Yang belum ada:
+  penghitung balasan bulanan dan remnya, tanpa itu kuota cuma janji.
+- **Variabel lingkungan Preview** belum diisi, jadi deployment dari branch
+  akan gagal. Sengaja: mengisinya berarti preview bisa menulis ke database
+  produksi.
 
 ---
 
