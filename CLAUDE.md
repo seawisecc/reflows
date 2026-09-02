@@ -63,6 +63,7 @@ src/komponen/ui/      Komponen pixel: tombol, kartu, tabel, lencana, grafik
 src/komponen/shell/   Bilah sisi, bilah atas, tombol tema
 src/lib/ai/           Peta kemampuan model, penyusun instruksi, mesin balasan
 src/lib/kampanye/     Aturan anti-ban dan antrean kampanye keluar
+src/lib/invoice/      Aritmetika invoice, penyusun PDF, penyimpanan berkas
 src/lib/gateway/      Adapter WhatsApp: jenis, nomor, fonnte, mock
 src/lib/impor/        Impor materi dari PDF, web, dan spreadsheet
 src/lib/data/         Pembacaan data lewat sesi pengguna (kena RLS)
@@ -110,10 +111,14 @@ itu dalam satu deretan hanya boleh ada satu warna alarm.
 
 ## Model data
 
-Dua belas tabel, semuanya membawa `tenant_id` dan dijaga RLS:
+Empat belas tabel, semuanya membawa `tenant_id` dan dijaga RLS:
 `tenants`, `pengguna`, `pengaturan_tenant`, `pengetahuan`, `kontak`,
 `percakapan`, `pesan`, `jalan_ai`, `log_audit`, `kampanye`,
-`langkah_kampanye`, `sasaran_kampanye`.
+`langkah_kampanye`, `sasaran_kampanye`, `invoice`, `baris_invoice`.
+
+PDF invoice tinggal di bucket Supabase Storage bernama `invoice` yang
+tertutup. Bucket itu dibuat lewat API penyimpanan, bukan lewat migrasi, jadi
+tidak ikut terbentuk sendiri di project Supabase yang baru.
 
 Tiga fungsi menghitung angka layar di dalam database dan mengembalikan satu
 jsonb: `ringkasan_dasbor()`, `penggunaan_ai()`, dan `keadaan_kampanye()`.
@@ -253,6 +258,19 @@ Dicatat supaya tidak terulang.
     `alter database ... set` ditolak. Rahasia yang dibutuhkan pg_cron
     disimpan di Supabase Vault, lalu dibaca lewat `vault.decrypted_secrets`
     di dalam definisi jadwalnya.
+17. **`INSERT ... SELECT` lintas tenant lolos tanpa menguji apa pun.** RLS
+    menyaring SELECT-nya lebih dulu, jadi tidak ada baris yang disisipkan
+    dan tidak ada galat yang muncul. Uji penolakan harus memakai baris yang
+    memang terlihat oleh pemakainya, lalu menaruh tenant_id orang lain di
+    kolomnya.
+18. **`npm run periksa-aksi` melarang tanda pisah panjang di seluruh kode**,
+    termasuk di tempat karakter itu justru jadi data, misalnya peta
+    pembersih teks untuk PDF. Tulis sebagai escape `\u2013`, jangan
+    melemahkan pemeriksanya.
+19. **Font PDF sengaja yang bawaan, bukan yang disematkan.** Konsekuensinya
+    teks harus muat di WinAnsi, jadi kutip melengkung dan emoji dibersihkan
+    di `aman()` sebelum digambar. Kalau lolos apa adanya, pdf-lib melempar
+    galat dan invoicenya gagal terbit tepat saat mau dikirim ke client.
 
 ---
 
@@ -264,7 +282,7 @@ Dicatat supaya tidak terulang.
 | 1 | Gateway, webhook, autentikasi, inbox, kirim manual | Selesai |
 | 2 | Mesin balasan AI, impor materi, eskalasi | Selesai |
 | 3 | Kampanye keluar, sequence, anti-ban | Selesai |
-| 4 | Invoice PDF dan pengirimannya lewat WhatsApp | Belum |
+| 4 | Invoice PDF dan pengirimannya lewat WhatsApp | Selesai |
 | 5 | Dasbor pemilik platform, monitoring lintas tenant, billing | Belum |
 
 ### Yang sudah hidup di produksi
@@ -280,6 +298,10 @@ terlihat.
 
 Antrean kampanye dipanggil pg_cron di Supabase setiap menit, dan terbukti
 dijawab 200 lewat `npm run periksa-cron`.
+
+Invoice bisa disusun dari daftar layanan, jadi PDF, lalu dikirim ke
+WhatsApp beserta ringkasan tagihan. Terbukti dengan invoice sungguhan yang
+diterbitkan di produksi lalu diunduh lewat tautan bertanda tangannya.
 
 Urutan keputusan mesin balasan:
 
@@ -320,6 +342,9 @@ bertambah.
 - **Fase 3 sudah jalan**, tapi belum pernah dipakai ke kontak sungguhan.
   Kampanye pertama sebaiknya kecil dulu, sepuluh sampai dua puluh kontak,
   dan hasilnya diperiksa sebelum daftar besar dimasukkan.
+- **Identitas invoice belum diisi.** Alamat bisnis dan nomor rekening kosong
+  di Pengaturan, jadi PDF yang terbit sekarang tidak memuat cara pembayaran
+  dan client harus menanyakannya lagi.
 - **Paket langganan** sudah dihitung, ada di `docs/keputusan-produk.md`.
   Mulai Rp 349.000, Tumbuh Rp 749.000, Penuh Rp 1.490.000. Yang belum ada:
   penghitung balasan bulanan dan remnya, tanpa itu kuota cuma janji.
@@ -339,6 +364,8 @@ bertambah.
 | `npm run uji-webhook` | Uji jalur webhook ujung ke ujung |
 | `npm run uji-auth` | Uji sesi dan isolasi antar tenant |
 | `npm run uji-kampanye` | Uji antrean kampanye ujung ke ujung |
+| `npm run uji-invoice` | Uji penomoran, PDF, dan penyimpanannya |
+| `npm run contoh-invoice` | Membuat PDF contoh tanpa menyentuh database |
 | `npm run pasang-cron` | Memasang penjadwal antrean di Supabase |
 | `npm run periksa-cron` | Memeriksa apakah cron benar-benar memanggil |
 | `npm run deploy` | Deploy ke produksi |

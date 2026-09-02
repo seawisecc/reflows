@@ -318,3 +318,76 @@ Skrip `npm run tenant-aktif` membandingkan jumlah kontak, percakapan, pesan,
 dan materi sebelum dan sesudah, lalu berhenti dengan galat kalau ada yang
 berubah. Suspensi yang diam-diam menghapus data adalah kegagalan paling
 mahal yang bisa terjadi di sana.
+
+## Invoice
+
+### Angka disalin, tidak menunjuk
+
+Deskripsi, harga satuan, nama bisnis, alamat, dan nomor rekening semuanya
+disalin ke baris invoice saat diterbitkan. Tidak ada satu pun yang menunjuk
+ke tabel `pengetahuan` maupun `pengaturan_tenant`.
+
+Kalau menunjuk, menaikkan harga layanan bulan depan akan diam-diam mengubah
+invoice yang sudah dibayar bulan lalu, dan tidak ada cara membuktikan berapa
+yang sebenarnya ditagih. Invoice adalah rekaman satu momen, bukan tampilan
+atas keadaan sekarang.
+
+Konsekuensinya, memperbaiki nomor rekening di Pengaturan tidak memperbaiki
+invoice yang sudah terbit. Untuk itu ada tombol Terbitkan ulang PDF, dan
+tombol itu memang harus ditekan sadar.
+
+### Penomoran
+
+`INV/tahun/urut`, diputar ulang tiap ganti tahun seperti kebiasaan di sini.
+Nomornya diambil lewat UPDATE yang mengunci baris penghitungnya, bukan lewat
+`max(nomor) + 1`. Dua invoice yang dibuat bersamaan dengan cara kedua akan
+mendapat nomor kembar tanpa suara, dan itu berarti dua client menerima
+tagihan bernomor sama.
+
+Fungsinya `security definer` supaya pemakai tidak perlu diberi hak menulis
+kolom penghitungnya. Tenantnya diambil dari sesi, dan parameter tenant cuma
+dipakai kalau sesinya memang tidak ada, yaitu jalur service role. Pemakai
+yang login tidak bisa menghabiskan nomor tenant lain lewat parameter itu.
+
+### Diskon dulu, baru PPN
+
+Menghitung PPN dari subtotal penuh lalu memotong diskon menghasilkan pajak
+atas uang yang tidak pernah ditagih. Urutannya dikunci uji, dan ujinya
+terbukti merah waktu urutannya dibalik.
+
+Diskon juga dijepit supaya tidak melebihi subtotal. Invoice bertotal negatif
+bukan invoice, dan kalau lolos ke PDF akan terlihat seperti kesalahan sistem
+di mata client.
+
+### PDF memakai font bawaan
+
+pdf-lib dengan Helvetica bawaan, bukan font yang disematkan. Alasannya bukan
+ukuran berkas: font bawaan tidak perlu diunduh saat fungsi dingin, dan
+invoice yang gagal terbit karena pengunduhan font timeout adalah cara paling
+bodoh untuk mengecewakan client.
+
+Konsekuensinya teks harus muat di WinAnsi. Bahasa Indonesia memang muat,
+tapi teks yang ditempel orang dari aplikasi lain sering membawa kutip
+melengkung dan emoji, jadi semuanya dibersihkan lebih dulu.
+
+Angka rupiah dan tanggal ditulis sendiri, tidak lewat `Intl`. Intl
+menyisipkan spasi tak terputus setelah "Rp" dan bentuknya berubah antar
+versi Node. Format invoice tidak boleh ikut berubah hanya karena runtimenya
+diperbarui.
+
+### Tautan berumur tujuh hari
+
+PDF disimpan di bucket tertutup dan dikirim sebagai tautan bertanda tangan.
+Umurnya tujuh hari, bukan satu jam. Gateway memang mengunduhnya beberapa
+detik setelah dikirim, tapi client sering membuka ulang chat lamanya, dan
+invoice yang tautannya mati sehari kemudian terlihat seperti penipuan.
+
+### Yang sengaja tidak dilakukan
+
+- **Tidak ada pengingat otomatis jatuh tempo.** Layar sudah menandai yang
+  lewat tempo, tapi mengirim tagihan berulang sendiri ke client itu
+  keputusan bisnis, bukan keputusan mesin. Kalau nanti dibuat, jalurnya
+  lewat kampanye yang sudah ada remnya, bukan jalur baru tanpa rem.
+- **Tidak ada pencatatan pembayaran sebagian.** Lunas atau belum saja.
+  Menambah pelunasan bertahap berarti menambah buku besar kecil, dan itu
+  produk yang berbeda.
