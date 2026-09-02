@@ -2,8 +2,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { segarkan_sesi } from "@/lib/supabase/proxy";
 import { supabase_siap } from "@/lib/lingkungan";
 
-/** Halaman yang boleh dibuka tanpa login. */
-const TERBUKA = ["/masuk", "/api/wa"];
+/**
+ * Jalur yang boleh dibuka tanpa sesi pengguna.
+ *
+ * Ditulis satu per satu, bukan dengan aturan menyeluruh semacam "semua
+ * /api", supaya jalur baru tidak diam-diam ikut terbuka. Dua yang ada di
+ * sini menjaga dirinya sendiri: webhook lewat rahasia 64 karakter di
+ * jalurnya, antrean kampanye lewat header rahasia yang dibandingkan dengan
+ * timingSafeEqual.
+ */
+const TERBUKA = ["/masuk", "/api/wa", "/api/kampanye"];
 
 export async function proxy(permintaan: NextRequest) {
   const jalur = permintaan.nextUrl.pathname;
