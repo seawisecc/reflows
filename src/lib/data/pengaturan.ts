@@ -118,21 +118,52 @@ export async function ambil_pengaturan(
   };
 }
 
-/** Status ringkas untuk bilah atas, tanpa menyentuh kolom rahasia. */
-export const status_perangkat = cache(async function status_perangkat() {
+export type PengaturanRingkas = {
+  gateway: string;
+  nomor_wa: string | null;
+  mode_balas: ModeBalas;
+  jam_mulai: string;
+  jam_selesai: string;
+  zona_waktu: string;
+  kuota_pesan_harian: number;
+  tersambung: boolean | null;
+  diperiksa_at: string | null;
+};
+
+/**
+ * Pengaturan yang dibutuhkan layar-layar biasa, tanpa menyentuh kolom
+ * rahasia sehingga tidak perlu service role sama sekali.
+ *
+ * Dibungkus cache() karena bilah atas dan dasbor sama-sama memakainya dalam
+ * satu permintaan yang sama. Tanpa itu, satu halaman menembak query yang
+ * sama dua kali.
+ */
+export const pengaturan_ringkas = cache(async function pengaturan_ringkas(): Promise<PengaturanRingkas | null> {
   if (!supabase_siap()) return null;
   const db = await klien_server();
   const { data } = await db
     .from("pengaturan_tenant")
-    .select("gateway, nomor_wa, perangkat_tersambung, perangkat_diperiksa_at")
+    .select(
+      "gateway, nomor_wa, mode_balas, jam_mulai, jam_selesai, zona_waktu, kuota_pesan_harian, perangkat_tersambung, perangkat_diperiksa_at",
+    )
     .maybeSingle();
   if (!data) return null;
   return {
     gateway: data.gateway as string,
     nomor_wa: data.nomor_wa as string | null,
+    mode_balas: data.mode_balas as ModeBalas,
+    jam_mulai: jam_pendek(data.jam_mulai),
+    jam_selesai: jam_pendek(data.jam_selesai),
+    zona_waktu: data.zona_waktu as string,
+    kuota_pesan_harian: Number(data.kuota_pesan_harian),
     tersambung: data.perangkat_tersambung as boolean | null,
     diperiksa_at: data.perangkat_diperiksa_at as string | null,
   };
 });
+
+/** Status ringkas untuk bilah atas. Berbagi query dengan pengaturan_ringkas. */
+export async function status_perangkat() {
+  return pengaturan_ringkas();
+}
 
 export { tenant_saya };

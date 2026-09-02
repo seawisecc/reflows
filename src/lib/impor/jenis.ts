@@ -27,6 +27,20 @@ export const SkemaEkstraksi = z.object({
     .describe(
       "Hal penting yang bukan layanan dan bukan FAQ, misalnya syarat, batasan, atau larangan",
     ),
+  kutipan: z
+    .array(
+      z.object({
+        judul: z.string().describe("Tentang apa kutipan ini, tiga sampai enam kata"),
+        isi: z
+          .string()
+          .describe(
+            "Isinya apa adanya dari dokumen, dirapikan seperlunya tapi tanpa mengubah makna, angka, maupun syarat",
+          ),
+      }),
+    )
+    .describe(
+      "Keterangan penting yang tidak muat sebagai layanan maupun FAQ, misalnya syarat pembayaran, jumlah revisi, cakupan garansi, alur kerja, atau jangkauan wilayah. Inilah yang membuat AI bisa menjawab pertanyaan di luar daftar harga.",
+    ),
   keraguan: z
     .array(z.string())
     .describe(

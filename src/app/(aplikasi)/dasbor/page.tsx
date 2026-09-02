@@ -2,6 +2,7 @@ import {
   ArrowUpRight,
   Bot,
   Clock,
+  FileClock,
   MessagesSquare,
   Sparkles,
   TriangleAlert,
@@ -9,36 +10,78 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { BilahAtas } from "@/komponen/shell/bilah-atas";
+import { Penyegar } from "@/komponen/penyegar";
 import { Kartu, KepalaKartu } from "@/komponen/ui/kartu";
 import { KartuStatistik, BarBlok } from "@/komponen/ui/statistik";
 import { Lencana, TitikStatus } from "@/komponen/ui/lencana";
 import { GrafikAktivitas } from "@/komponen/ui/grafik-aktivitas";
 import { Tombol } from "@/komponen/ui/tombol";
 import { AKTIVITAS_7_HARI, RINGKASAN } from "@/lib/contoh-data";
-import { ambil_percakapan, ambil_ringkasan } from "@/lib/data/percakapan";
-import { waktu_relatif } from "@/lib/utils";
+import { ambil_percakapan } from "@/lib/data/percakapan";
+import { ambil_ringkasan_nyata } from "@/lib/data/ringkasan";
+import { pengaturan_ringkas } from "@/lib/data/pengaturan";
+import { kurs_dolar } from "@/lib/ai/biaya";
+import { rupiah, waktu_relatif } from "@/lib/utils";
 
 export const metadata = { title: "Ringkasan | Reflows" };
 
 export const dynamic = "force-dynamic";
 
+/** Lewat semenit, "2.30 menit" lebih terbaca daripada "150 detik". */
+function lama(detik: number): { nilai: string; satuan: string } {
+  if (detik < 60) return { nilai: String(detik), satuan: "detik" };
+  const menit = Math.floor(detik / 60);
+  const sisa = detik % 60;
+  return {
+    nilai: sisa === 0 ? String(menit) : `${menit}.${String(sisa).padStart(2, "0")}`,
+    satuan: "menit",
+  };
+}
+
 export default async function Dasbor() {
+  const pengaturan = await pengaturan_ringkas();
   const [{ daftar, sumber }, hitungan] = await Promise.all([
     ambil_percakapan(),
-    ambil_ringkasan(),
+    ambil_ringkasan_nyata(pengaturan?.zona_waktu ?? "Asia/Makassar"),
   ]);
 
   // Angka nyata kalau database tersambung, angka contoh kalau belum.
   // Sengaja tidak dicampur, supaya tidak ada layar yang setengah nyata.
-  const angka = hitungan ?? RINGKASAN;
+  const angka = sumber === "supabase" ? hitungan : null;
+  const nyata = angka !== null;
   const perlu_perhatian = daftar.filter((p) => p.status === "manual");
+
+  const kuota = pengaturan?.kuota_pesan_harian ?? RINGKASAN.kuota_pesan_harian;
+  const terpakai = angka?.pesan_keluar_hari_ini ?? 0;
+  const balas = lama(angka?.waktu_balas_rata_detik ?? 0);
+  const biaya_rp = (angka?.biaya_bulan_ini_dolar ?? 0) * kurs_dolar();
+
+  const aktivitas = angka
+    ? angka.aktivitas.map((a) => ({
+        hari: a.label,
+        masuk: a.masuk,
+        ai: a.ai,
+        // Sisanya ditangani manusia. Dihitung sebagai selisih, bukan diquery
+        // sendiri, karena pesan keluar dari manusia bisa lebih banyak dari
+        // pesan masuk dan grafik tumpukannya jadi melebihi batangnya.
+        manusia: Math.max(0, a.masuk - a.ai),
+      }))
+    : AKTIVITAS_7_HARI;
 
   return (
     <>
       <BilahAtas
         judul="Ringkasan"
         keterangan="Kondisi admin WhatsApp kamu hari ini"
+        aksi={
+          nyata ? null : (
+            <Lencana nada="tunggu" className="hidden lg:inline-flex">
+              Data contoh
+            </Lencana>
+          )
+        }
       />
+      {nyata ? <Penyegar jeda_detik={30} /> : null}
 
       <main className="space-y-6 p-4 sm:p-6">
         <section
@@ -47,33 +90,41 @@ export default async function Dasbor() {
         >
           <KartuStatistik
             label="Pesan masuk hari ini"
-            nilai={String(angka.pesan_masuk_hari_ini)}
+            nilai={String(angka?.pesan_masuk_hari_ini ?? RINGKASAN.pesan_masuk_hari_ini)}
             ikon={MessagesSquare}
             nada="netral"
-            catatan={`${angka.kontak_baru_minggu_ini} kontak baru minggu ini`}
+            catatan={`${angka?.kontak_baru_minggu_ini ?? 0} kontak baru minggu ini`}
           />
           <KartuStatistik
             label="Dijawab AI sendiri"
-            nilai={String(angka.dijawab_ai)}
-            satuan={`dari ${angka.pesan_masuk_hari_ini}`}
+            nilai={String(angka?.dijawab_ai ?? RINGKASAN.dijawab_ai)}
+            satuan={`dari ${angka?.pesan_masuk_hari_ini ?? 0}`}
             ikon={Bot}
             nada="sekunder"
             catatan="Kamu tidak perlu menyentuh percakapan ini"
           />
           <KartuStatistik
             label="Butuh kamu"
-            nilai={String(angka.butuh_kamu)}
+            nilai={String(angka?.butuh_kamu ?? RINGKASAN.butuh_kamu)}
             ikon={TriangleAlert}
             nada="gagal"
-            catatan="Percakapan yang AI serahkan ke kamu"
+            catatan={
+              angka && angka.draf_menunggu > 0
+                ? `${angka.draf_menunggu} draf AI menunggu persetujuan`
+                : "Percakapan yang AI serahkan ke kamu"
+            }
           />
           <KartuStatistik
             label="Rata-rata balas"
-            nilai={sumber === "supabase" ? "0" : String(RINGKASAN.waktu_balas_rata_detik)}
-            satuan="detik"
+            nilai={balas.nilai}
+            satuan={balas.satuan}
             ikon={Clock}
             nada="netral"
-            catatan="Terisi setelah mesin AI menyala di Fase 2"
+            catatan={
+              angka && angka.balasan_terhitung > 0
+                ? `Dari ${angka.balasan_terhitung} balasan tujuh hari terakhir`
+                : "Terisi setelah ada pesan masuk yang dibalas"
+            }
           />
         </section>
 
@@ -83,7 +134,7 @@ export default async function Dasbor() {
               judul="Tujuh hari terakhir"
               keterangan="Berapa pesan yang masuk, dan berapa yang lolos tanpa campur tangan kamu."
             />
-            <GrafikAktivitas data={AKTIVITAS_7_HARI} />
+            <GrafikAktivitas data={aktivitas} />
           </Kartu>
 
           <div className="space-y-6">
@@ -94,33 +145,44 @@ export default async function Dasbor() {
               />
               <div className="space-y-4 p-4">
                 <BarBlok
-                  nilai={angka.pesan_masuk_hari_ini}
-                  maks={RINGKASAN.kuota_pesan_harian}
-                  nada="aksen"
-                  label={`${angka.pesan_masuk_hari_ini} dari ${RINGKASAN.kuota_pesan_harian} pesan`}
+                  nilai={terpakai}
+                  maks={kuota}
+                  nada={terpakai / kuota > 0.9 ? "gagal" : "aksen"}
+                  label={`${terpakai} dari ${kuota} pesan keluar`}
                 />
                 <div className="pemisah-pixel" />
                 <dl className="space-y-3 text-xs">
                   <div className="flex items-center justify-between gap-3">
                     <dt className="text-redup">Status nomor</dt>
                     <dd>
-                      <Lencana nada="tunggu">
-                        <TitikStatus nada="tunggu" hidup />
-                        Belum tersambung
-                      </Lencana>
+                      <StatusNomor pengaturan={pengaturan} />
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <dt className="text-redup">Jam aktif</dt>
-                    <dd className="angka text-teks">08.00 sampai 20.00 WITA</dd>
+                    <dd className="angka text-teks">
+                      {pengaturan
+                        ? `${pengaturan.jam_mulai} sampai ${pengaturan.jam_selesai}`
+                        : "08.00 sampai 20.00"}
+                    </dd>
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <dt className="text-redup">Biaya AI bulan ini</dt>
                     <dd className="angka text-teks">
-                      $ {RINGKASAN.biaya_ai_bulan_ini.toFixed(2)}
+                      $ {(angka?.biaya_bulan_ini_dolar ?? 0).toFixed(3)}
                     </dd>
                   </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-redup">Kira-kira rupiah</dt>
+                    <dd className="angka text-teks">{rupiah(biaya_rp)}</dd>
+                  </div>
                 </dl>
+                <Link href="/penggunaan" className="fokus-pixel block">
+                  <Tombol varian="garis" ukuran="kecil" className="w-full">
+                    <FileClock className="size-3.5" />
+                    Rincian pemakaian
+                  </Tombol>
+                </Link>
               </div>
             </Kartu>
 
@@ -135,13 +197,20 @@ export default async function Dasbor() {
                     label: "Sambungkan nomor WhatsApp",
                     ke: "/pengaturan",
                     ikon: Sparkles,
+                    beres: pengaturan?.tersambung === true,
                   },
                   {
                     label: "Isi layanan dan harga",
                     ke: "/pengetahuan",
                     ikon: Bot,
+                    beres: (angka?.materi_aktif ?? 0) > 0,
                   },
-                  { label: "Impor kontak client", ke: "/kontak", ikon: UserPlus },
+                  {
+                    label: "Impor kontak client",
+                    ke: "/kontak",
+                    ikon: UserPlus,
+                    beres: (angka?.kontak_total ?? 0) > 0,
+                  },
                 ].map((l, i) => (
                   <li key={l.ke}>
                     <Link
@@ -152,6 +221,7 @@ export default async function Dasbor() {
                         {i + 1}
                       </span>
                       <span className="flex-1 text-teks">{l.label}</span>
+                      {l.beres ? <Lencana nada="sukses">Beres</Lencana> : null}
                       <ArrowUpRight className="size-4 shrink-0 text-redup" />
                     </Link>
                   </li>
@@ -208,5 +278,47 @@ export default async function Dasbor() {
         </Kartu>
       </main>
     </>
+  );
+}
+
+function StatusNomor({
+  pengaturan,
+}: {
+  pengaturan: Awaited<ReturnType<typeof pengaturan_ringkas>>;
+}) {
+  if (!pengaturan) {
+    return (
+      <Lencana nada="tunggu">
+        <TitikStatus nada="tunggu" hidup />
+        Belum tersambung
+      </Lencana>
+    );
+  }
+  if (pengaturan.gateway !== "fonnte") {
+    return (
+      <Lencana nada="netral">
+        <TitikStatus nada="netral" />
+        Gateway tiruan
+      </Lencana>
+    );
+  }
+  if (pengaturan.tersambung === null) {
+    return (
+      <Lencana nada="tunggu">
+        <TitikStatus nada="tunggu" hidup />
+        Belum diperiksa
+      </Lencana>
+    );
+  }
+  return pengaturan.tersambung ? (
+    <Lencana nada="sukses">
+      <TitikStatus nada="sukses" />
+      Tersambung
+    </Lencana>
+  ) : (
+    <Lencana nada="gagal">
+      <TitikStatus nada="gagal" hidup />
+      Terputus
+    </Lencana>
   );
 }

@@ -13,7 +13,12 @@ export type PengirimPesan = "kontak" | "ai" | "manusia";
 
 export type StatusKirim = "antre" | "terkirim" | "sampai" | "dibaca" | "gagal";
 
-export type TipePengetahuan = "layanan" | "faq" | "gaya" | "catatan";
+export type TipePengetahuan =
+  | "layanan"
+  | "faq"
+  | "gaya"
+  | "catatan"
+  | "dokumen";
 
 export type SumberKontak = "chat-masuk" | "impor" | "manual" | "kampanye";
 

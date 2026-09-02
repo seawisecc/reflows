@@ -54,6 +54,13 @@ Aturan yang tidak boleh dilanggar:
    wajar dimiliki bisnis semacam itu.
 5. Buang bahasa promosi. Tulis apa adanya, seperti catatan internal.
 6. Semua keluaran dalam bahasa Indonesia.
+7. Apa pun yang berguna untuk menjawab client tapi tidak muat sebagai layanan
+   maupun FAQ, masukkan ke kutipan. Contohnya syarat pembayaran, jumlah
+   revisi, cakupan garansi, alur kerja, jangkauan wilayah, hal yang tidak
+   dikerjakan. Salin isinya apa adanya, jangan diringkas sampai kehilangan
+   angka atau syaratnya.
+8. Jangan menaruh hal yang sama di dua tempat. Kalau sudah jadi FAQ, tidak
+   perlu diulang sebagai kutipan.
 
 Kalau dokumennya tidak memuat informasi layanan maupun pertanyaan, kembalikan
 daftar kosong. Itu jawaban yang benar, bukan kegagalan.`;

@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  FileText,
   MessageCircleQuestion,
   Palette,
   ShieldBan,
@@ -10,6 +11,7 @@ import { Kosong } from "@/komponen/ui/kosong";
 import { Lencana } from "@/komponen/ui/lencana";
 import { ambil_pengetahuan } from "@/lib/data/pengetahuan";
 import { PanelImpor } from "./panel-impor";
+import { TambahMateri } from "./tambah";
 import { BarisMateri } from "./daftar";
 import type { TipePengetahuan } from "@/tipe";
 
@@ -35,6 +37,13 @@ const BAGIAN: {
     keterangan:
       "Tulis jawabannya sekali, AI memakai ulang dengan kalimat yang disesuaikan konteks.",
     ikon: MessageCircleQuestion,
+  },
+  {
+    tipe: "dokumen",
+    judul: "Keterangan dari materi",
+    keterangan:
+      "Yang tidak berbentuk layanan maupun pertanyaan: syarat pembayaran, jumlah revisi, garansi, alur kerja. Kalau berselisih dengan daftar layanan, angka di daftar layanan yang menang.",
+    ikon: FileText,
   },
   {
     tipe: "gaya",
@@ -74,10 +83,14 @@ export default async function HalamanPengetahuan() {
             disimpan di cache, jadi bagian yang sama tidak dibayar ulang setiap
             balasan. Dokumen aslinya sengaja tidak ikut dibaca tiap kali:
             menyuapkan PDF dua puluh halaman ke setiap balasan itu mahal, dan
-            model bisa salah membaca baris tabel harga.
+            model bisa salah membaca baris tabel harga. Yang dibaca sekali,
+            lalu disimpan sebagai butir rapi yang kamu setujui, termasuk
+            keterangan di luar daftar harga supaya AI tidak menyerah setiap
+            kali ditanya soal syarat atau cara kerja.
           </p>
         </Kartu>
 
+        {nyata ? <TambahMateri /> : null}
         {nyata ? <PanelImpor /> : null}
 
         {daftar.length === 0 ? (

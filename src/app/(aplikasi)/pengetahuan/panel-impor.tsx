@@ -49,6 +49,14 @@ function ke_draf(hasil: NonNullable<KeadaanImpor["hasil"]>): Draf[] {
       harga: null,
       dipilih: true,
     })),
+    ...hasil.kutipan.map((k, i) => ({
+      kunci: `dokumen-${i}`,
+      tipe: "dokumen" as const,
+      judul: k.judul,
+      isi: k.isi,
+      harga: null,
+      dipilih: true,
+    })),
     ...hasil.catatan.map((c, i) => ({
       kunci: `catatan-${i}`,
       tipe: "catatan" as const,
@@ -65,6 +73,7 @@ const LABEL_TIPE: Record<TipePengetahuan, string> = {
   faq: "FAQ",
   gaya: "Gaya bahasa",
   catatan: "Catatan",
+  dokumen: "Dari materi",
 };
 
 export function PanelImpor() {

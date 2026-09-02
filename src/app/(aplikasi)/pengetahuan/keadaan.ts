@@ -25,3 +25,7 @@ export const IMPOR_AWAL: KeadaanImpor = {
 export type KeadaanSimpan = { galat: string | null; pesan: string | null };
 
 export const SIMPAN_AWAL: KeadaanSimpan = { galat: null, pesan: null };
+
+export type KeadaanTambah = { galat: string | null; pesan: string | null };
+
+export const TAMBAH_AWAL: KeadaanTambah = { galat: null, pesan: null };

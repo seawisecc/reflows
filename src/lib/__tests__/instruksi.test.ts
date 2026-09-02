@@ -87,3 +87,36 @@ test("instruksi melarang AI menyanggupi panggilan atau pertemuan", () => {
   assert.match(teks, /minta bicara dengan orang/);
   assert.match(teks, /Serahkan ke\s+manusia/);
 });
+
+test("keterangan dari materi yang diunggah ikut masuk instruksi", () => {
+  const teks = susun_instruksi("Seawise Studio", [
+    ...CONTOH,
+    butir({
+      tipe: "dokumen",
+      judul: "Syarat pembayaran",
+      isi: "DP 50 persen di awal, sisanya saat serah terima. Revisi maksimal 3 kali.",
+    }),
+  ]);
+  assert.match(teks, /Keterangan dari materi bisnis/);
+  assert.match(teks, /DP 50 persen di awal/);
+  assert.match(teks, /Revisi maksimal 3 kali/);
+});
+
+test("materi dokumen ditaruh setelah layanan, supaya harga yang menang", () => {
+  const teks = susun_instruksi("Seawise Studio", [
+    ...CONTOH,
+    butir({ tipe: "dokumen", judul: "Catatan lama", isi: "Company Profile Rp 3.000.000" }),
+  ]);
+  assert.ok(
+    teks.indexOf("Layanan dan harga") < teks.indexOf("Keterangan dari materi bisnis"),
+    "bagian layanan harus mendahului bagian keterangan materi",
+  );
+});
+
+test("materi dokumen saja sudah cukup untuk tidak menyerah", () => {
+  const teks = susun_instruksi("Seawise Studio", [
+    butir({ tipe: "dokumen", judul: "Jam kerja", isi: "Senin sampai Jumat, 09.00 sampai 17.00" }),
+  ]);
+  assert.doesNotMatch(teks, /belum mengisi daftar layanan/);
+  assert.match(teks, /Senin sampai Jumat/);
+});

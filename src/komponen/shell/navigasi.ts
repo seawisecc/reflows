@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Coins,
   LayoutDashboard,
   MessagesSquare,
   Receipt,
@@ -32,6 +33,7 @@ export const NAVIGASI: GrupNav[] = [
     item: [
       { href: "/pengetahuan", label: "Pengetahuan", ikon: BookOpen },
       { href: "/pengaturan", label: "Pengaturan", ikon: Settings },
+      { href: "/penggunaan", label: "Penggunaan", ikon: Coins },
     ],
   },
   {

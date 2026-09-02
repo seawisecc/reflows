@@ -3,9 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, X } from "lucide-react";
+import { LogOut, X } from "lucide-react";
 import { keluar } from "@/app/masuk/aksi";
 import { NAVIGASI } from "./navigasi";
+import { useLaci } from "./laci";
 import { cn } from "@/lib/utils";
 
 function Merek({ nama_bisnis }: { nama_bisnis: string }) {
@@ -133,7 +134,12 @@ export function BilahSisi({
 }) {
   // Laci ditutup lewat onPilih di setiap tautan, bukan lewat efek yang
   // mengamati perubahan jalur. Hasilnya sama tapi tanpa render bertingkat.
-  const [terbuka, setTerbuka] = React.useState(false);
+  //
+  // Keadaannya datang dari konteks, bukan dari useState di sini, karena
+  // tombol pembukanya ada di bilah atas milik halaman. Bilah sisi sendiri
+  // dirender di layout supaya tetap terpasang saat pindah halaman: itu yang
+  // membuat navigasi tidak lagi menunggu profil pengguna dibaca ulang.
+  const { terbuka, setTerbuka } = useLaci();
 
   return (
     <>
@@ -143,16 +149,6 @@ export function BilahSisi({
         <DaftarNav />
         <KakiSisi nama_pengguna={nama_pengguna} email={email} />
       </aside>
-
-      {/* Tombol laci di layar sempit */}
-      <button
-        type="button"
-        onClick={() => setTerbuka(true)}
-        aria-label="Buka menu"
-        className="fokus-pixel tekan bayang-pixel-kecil inline-flex size-9 items-center justify-center border-2 border-garis-tegas bg-permukaan text-teks lg:hidden"
-      >
-        <Menu className="size-4" />
-      </button>
 
       {terbuka ? (
         <div className="fixed inset-0 z-40 lg:hidden">

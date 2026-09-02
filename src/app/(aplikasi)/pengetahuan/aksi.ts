@@ -11,7 +11,7 @@ import type { TipePengetahuan } from "@/tipe";
 
 const MAKS_BERKAS = 10 * 1024 * 1024;
 
-import type { KeadaanImpor, KeadaanSimpan } from "./keadaan";
+import type { KeadaanImpor, KeadaanSimpan, KeadaanTambah } from "./keadaan";
 
 // Konstanta tidak boleh diekspor dari berkas "use server": berkas itu hanya
 // boleh mengekspor fungsi async. Kalau dilanggar, build dan lint tetap lolos
@@ -107,6 +107,7 @@ export async function impor_materi(
   const kosong =
     hasil.hasil.layanan.length === 0 &&
     hasil.hasil.faq.length === 0 &&
+    hasil.hasil.kutipan.length === 0 &&
     hasil.hasil.catatan.length === 0;
 
   if (kosong) {
@@ -187,6 +188,87 @@ export async function ubah_aktif(
   const db = await klien_server();
   const { error } = await db.from("pengetahuan").update({ aktif }).eq("id", id);
   if (error) return { galat: `Gagal mengubah: ${error.message}` };
+  revalidatePath("/pengetahuan");
+  return { galat: null };
+}
+
+const TIPE_SAH: TipePengetahuan[] = ["layanan", "faq", "gaya", "catatan", "dokumen"];
+
+function tipe_terbaca(nilai: unknown): TipePengetahuan | null {
+  return TIPE_SAH.includes(nilai as TipePengetahuan)
+    ? (nilai as TipePengetahuan)
+    : null;
+}
+
+/** Harga dari formulir: "4.500.000" dan "4500000" sama-sama diterima. */
+function harga_terbaca(mentah: unknown): number | null {
+  const teks = String(mentah ?? "").replace(/[^\d]/g, "");
+  if (!teks) return null;
+  const nilai = Number(teks);
+  return Number.isFinite(nilai) && nilai >= 0 ? Math.round(nilai) : null;
+}
+
+/**
+ * Menambah satu butir materi dengan tangan.
+ *
+ * Sebelum ini satu-satunya jalan mengisi materi adalah lewat impor dokumen.
+ * Padahal yang paling sering terjadi justru sebaliknya: satu harga berubah,
+ * atau satu pertanyaan baru sering masuk, dan itu tidak perlu PDF.
+ */
+export async function tambah_materi(
+  _sebelumnya: KeadaanTambah,
+  data: FormData,
+): Promise<KeadaanTambah> {
+  const tenant_id = await tenant_saya();
+  if (!tenant_id) return { galat: "Sesi kamu sudah habis. Masuk lagi ya.", pesan: null };
+
+  const tipe = tipe_terbaca(data.get("tipe"));
+  if (!tipe) return { galat: "Jenis materinya belum dipilih.", pesan: null };
+
+  const judul = String(data.get("judul") ?? "").trim().slice(0, 200);
+  const isi = String(data.get("isi") ?? "").trim().slice(0, 4000);
+  if (!judul || !isi) {
+    return { galat: "Judul dan isinya harus diisi dua-duanya.", pesan: null };
+  }
+
+  const db = await klien_server();
+  const { error } = await db.from("pengetahuan").insert({
+    tenant_id,
+    tipe,
+    judul,
+    isi,
+    harga: tipe === "layanan" ? harga_terbaca(data.get("harga")) : null,
+    aktif: true,
+  });
+  if (error) return { galat: `Gagal menyimpan: ${error.message}`, pesan: null };
+
+  revalidatePath("/pengetahuan");
+  return { galat: null, pesan: `"${judul}" masuk ke materi admin.` };
+}
+
+/** Menyunting satu butir yang sudah ada, langsung dari daftarnya. */
+export async function ubah_materi(
+  id: string,
+  ubahan: { judul: string; isi: string; harga: number | null },
+): Promise<{ galat: string | null }> {
+  const judul = ubahan.judul.trim().slice(0, 200);
+  const isi = ubahan.isi.trim().slice(0, 4000);
+  if (!judul || !isi) return { galat: "Judul dan isinya tidak boleh kosong." };
+
+  const db = await klien_server();
+  const { error } = await db
+    .from("pengetahuan")
+    .update({
+      judul,
+      isi,
+      harga:
+        ubahan.harga === null || !Number.isFinite(ubahan.harga) || ubahan.harga < 0
+          ? null
+          : Math.round(ubahan.harga),
+    })
+    .eq("id", id);
+  if (error) return { galat: `Gagal menyimpan: ${error.message}` };
+
   revalidatePath("/pengetahuan");
   return { galat: null };
 }

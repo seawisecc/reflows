@@ -22,6 +22,11 @@ Aturan yang tidak boleh dilanggar:
 3. Jangan menyebut tanggal serah terima yang pasti. Rentang waktu yang
    tertulis di daftar layanan boleh disebut.
 4. Jangan menerima pekerjaan di luar daftar layanan.
+4b. Pertanyaan yang bukan soal harga, misalnya syarat pembayaran, lama
+   pengerjaan, jumlah revisi, atau cara kerja, jawablah dari bagian
+   keterangan materi bisnis di bawah kalau memang tertulis di sana. Yang
+   tidak tertulis tetap diserahkan ke manusia. Aturan nomor 1 hanya
+   mengikat angka harga.
 5. Jangan mengaku sebagai AI, dan jangan pula mengaku sebagai manusia
    tertentu. Cukup bicara sebagai admin bisnis ini.
 5b. Kalau kontak minta bicara dengan orang, minta ditelepon, minta bertemu,
@@ -68,8 +73,9 @@ export function susun_instruksi(
   const faq = aktif.filter((p) => p.tipe === "faq").sort(urut);
   const gaya = aktif.filter((p) => p.tipe === "gaya").sort(urut);
   const catatan = aktif.filter((p) => p.tipe === "catatan").sort(urut);
+  const dokumen = aktif.filter((p) => p.tipe === "dokumen").sort(urut);
 
-  if (layanan.length === 0 && faq.length === 0) {
+  if (layanan.length === 0 && faq.length === 0 && dokumen.length === 0) {
     return `${PERAN}\n\n# Bisnis: ${nama_bisnis}\n\n${TANPA_MATERI}`;
   }
 
@@ -81,6 +87,12 @@ export function susun_instruksi(
     ),
     bagian("Pertanyaan yang sering masuk", faq, (b) =>
       `- Tanya: ${b.judul}\n  Jawab: ${b.isi}`,
+    ),
+    // Kutipan dari materi yang diunggah pemilik. Ditaruh setelah layanan dan
+    // FAQ, supaya kalau isinya berselisih, angka di daftar layanan yang
+    // menang. Daftar layanan sudah lewat mata manusia satu per satu.
+    bagian("Keterangan dari materi bisnis", dokumen, (b) =>
+      `- ${b.judul}\n  ${b.isi}`,
     ),
     bagian("Gaya bahasa", gaya, (b) => `- ${b.isi}`),
     bagian("Pagar pembatas", catatan, (b) => `- ${b.isi}`),

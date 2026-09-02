@@ -239,6 +239,81 @@ async function main() {
     `terlihat: ${semua.rows.length}`,
   );
 
+  // ---- Angka dasbor dan pemakaian AI ----
+  // Diisi timpang sengaja: Seawise 2 pesan masuk, Sari Rasa 5. Kalau fungsi
+  // ringkasannya lupa disaring RLS, Agus akan melihat 7 dan uji ini merah.
+  console.log("\nRingkasan dasbor dan penggunaan AI");
+  await db.exec(`reset role;`);
+  await db.exec(`
+    insert into public.percakapan (id, tenant_id, kontak_id)
+    select 'cccccccc-0000-0000-0000-000000000002', tenant_id, id
+      from public.kontak where nomor_wa = '628222000001';
+
+    insert into public.pesan (tenant_id, percakapan_id, arah, pengirim, isi, status_kirim, dibuat_at)
+    values
+      ('aaaaaaaa-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000001', 'masuk', 'kontak', 'halo', 'sampai', now() - interval '120 seconds'),
+      ('aaaaaaaa-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000001', 'keluar', 'ai', 'halo juga', 'terkirim', now() - interval '60 seconds'),
+      ('aaaaaaaa-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000001', 'masuk', 'kontak', 'belum dibalas', 'sampai', now() - interval '10 seconds'),
+      ('aaaaaaaa-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000001', 'keluar', 'ai', 'draf', 'antre', now());
+
+    insert into public.pesan (tenant_id, percakapan_id, arah, pengirim, isi, status_kirim, dibuat_at)
+    select 'bbbbbbbb-0000-0000-0000-000000000002', 'cccccccc-0000-0000-0000-000000000002',
+           'masuk', 'kontak', 'pesan ' || g, 'sampai', now() - interval '30 seconds'
+      from generate_series(1, 5) g;
+
+    insert into public.jalan_ai (tenant_id, model, token_masuk, token_keluar, latensi_ms, keyakinan)
+    values
+      ('aaaaaaaa-0000-0000-0000-000000000001', 'claude-haiku-4-5', 1000, 200, 1200, 0.90),
+      ('bbbbbbbb-0000-0000-0000-000000000002', 'claude-haiku-4-5', 9000, 900, 3000, 0.50);
+  `);
+
+  await jadiPengguna("11111111-1111-1111-1111-111111111111");
+  const ringkas = await db.query<{ r: Record<string, unknown> }>(
+    `select public.ringkasan_dasbor() as r`,
+  );
+  const r = ringkas.rows[0]?.r as Record<string, number | unknown[]>;
+  periksa(
+    "ringkasan hanya menghitung pesan tenant sendiri",
+    r?.pesan_masuk_hari_ini === 2,
+    `pesan_masuk_hari_ini: ${r?.pesan_masuk_hari_ini}`,
+  );
+  periksa(
+    "draf yang antre tidak dihitung sebagai dijawab AI",
+    r?.dijawab_ai === 1 && r?.draf_menunggu === 1,
+    `dijawab_ai: ${r?.dijawab_ai}, draf_menunggu: ${r?.draf_menunggu}`,
+  );
+  periksa(
+    "waktu balas dihitung dari pesan masuk ke balasan berikutnya",
+    r?.waktu_balas_rata_detik === 60 && r?.balasan_terhitung === 1,
+    `rata: ${r?.waktu_balas_rata_detik}, terhitung: ${r?.balasan_terhitung}`,
+  );
+  periksa(
+    "grafik aktivitas berisi tujuh hari",
+    Array.isArray(r?.aktivitas) && (r.aktivitas as unknown[]).length === 7,
+    `panjang: ${Array.isArray(r?.aktivitas) ? (r.aktivitas as unknown[]).length : "bukan larik"}`,
+  );
+
+  const pakai = await db.query<{ p: Record<string, unknown> }>(
+    `select public.penggunaan_ai(30) as p`,
+  );
+  const per_model = (pakai.rows[0]?.p as { per_model?: { token_masuk: number }[] })
+    ?.per_model;
+  periksa(
+    "penggunaan token hanya menjumlah tenant sendiri",
+    per_model?.length === 1 && Number(per_model[0]?.token_masuk) === 1000,
+    `hasil: ${JSON.stringify(per_model)}`,
+  );
+
+  await jadiPengguna("22222222-2222-2222-2222-222222222222");
+  const ringkasRatna = await db.query<{ r: Record<string, number> }>(
+    `select public.ringkasan_dasbor() as r`,
+  );
+  periksa(
+    "tenant lain melihat angkanya sendiri, bukan angka Seawise",
+    ringkasRatna.rows[0]?.r?.pesan_masuk_hari_ini === 5,
+    `nilai: ${ringkasRatna.rows[0]?.r?.pesan_masuk_hari_ini}`,
+  );
+
   console.log("\nHak service_role");
   await db.exec(`reset role;`);
   await db.exec(`set role service_role;`);
