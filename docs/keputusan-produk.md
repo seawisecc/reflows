@@ -268,3 +268,53 @@ yang membalas itu hasil bagus, percakapannya pindah ke inbox. Kontak yang
 membalas STOP itu hasil buruk, dan dia tidak akan pernah masuk kampanye mana
 pun lagi. Kalau alasannya disamakan, tidak ada cara menilai kampanye mana
 yang berhasil dan mana yang mengganggu orang.
+
+## Mematikan layanan tanpa kehilangan apa pun
+
+Model langganan butuh cara berhenti sementara. Tenant yang mau libur sebulan
+tidak boleh harus menyiapkan ulang nomor, materi, dan kontaknya dari nol
+saat kembali, dan tenant yang berhenti bayar tidak boleh bisa menyalakan
+dirinya sendiri.
+
+Karena itu dua saklar, bukan satu:
+
+| | Kolom | Dipegang | Yang ikut mati |
+|---|---|---|---|
+| Jeda | `pengaturan_tenant.dijeda_at` | Tenant sendiri, lewat halaman Pengaturan | Balasan AI dan kampanye |
+| Suspensi | `tenants.aktif` | Seawise, lewat `npm run tenant-aktif` | Semuanya, termasuk kirim manual |
+
+Kalau keduanya dijadikan satu kolom, salah satu dari dua kebutuhan itu pasti
+salah: entah tenant tidak bisa menjeda sendiri, atau tenant yang disuspensi
+bisa melepas suspensinya sendiri.
+
+### Kenapa jeda tidak mematikan tombol kirim
+
+Yang menjeda biasanya justru mau memegang chatnya sendiri dulu, misalnya
+karena sedang promo dan jawabannya belum masuk materi. Mematikan tombol
+kirimnya di situ malah memaksa dia pindah ke aplikasi WhatsApp biasa, dan
+riwayat percakapannya jadi terbelah dua tempat. Suspensi beda perkara: di
+situ layanannya memang berhenti, jadi tidak ada satu pun pesan yang boleh
+keluar lewat Reflows.
+
+### Dua hal yang tidak pernah ikut mati
+
+1. **Pesan masuk tetap dicatat.** Layanan yang mati boleh berhenti membalas,
+   tapi tidak boleh membuang chat client. Kalau dibuang, menyalakan lagi
+   berarti pemiliknya kehilangan semua yang masuk selama mati, justru saat
+   dia paling perlu tahu apa yang terlewat.
+2. **Permintaan berhenti tetap dihormati.** Orang yang membalas STOP saat
+   layanan sedang dijeda tetap masuk daftar berhenti. Kalau tidak, dia akan
+   dikirimi kampanye lagi begitu layanannya dinyalakan.
+
+### Yang tetap utuh saat dimatikan
+
+Nomor WhatsApp dan token gatewaynya, rahasia dan URL webhook, materi admin
+beserta harganya, semua kontak dan tagnya, daftar berhenti, riwayat
+percakapan, draf yang belum disetujui, dan kampanye beserta antrean
+sasarannya. Menyalakan lagi berarti mengosongkan satu kolom, bukan
+menyiapkan ulang tenant.
+
+Skrip `npm run tenant-aktif` membandingkan jumlah kontak, percakapan, pesan,
+dan materi sebelum dan sesudah, lalu berhenti dengan galat kalau ada yang
+berubah. Suspensi yang diam-diam menghapus data adalah kegagalan paling
+mahal yang bisa terjadi di sana.

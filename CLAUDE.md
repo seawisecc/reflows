@@ -129,6 +129,28 @@ dipanggil webhook saat kontak membalas.
 Kebijakan RLS bertumpu pada `public.tenant_saya()` yang `SECURITY DEFINER`,
 supaya pembacaan tabel `pengguna` di dalamnya tidak ikut kena RLS.
 
+### Dua saklar mematikan layanan
+
+Beda pemiliknya, dan bedanya menentukan siapa yang boleh menyalakan lagi.
+
+| | Kolom | Dipegang | Yang ikut mati |
+|---|---|---|---|
+| Jeda | `pengaturan_tenant.dijeda_at` | Tenant sendiri | Balasan AI dan kampanye. Kirim manual tetap boleh |
+| Suspensi | `tenants.aktif` | Seawise | Semuanya, termasuk kirim manual |
+
+Tenant tidak bisa melepas suspensi karena tabel `tenants` tidak punya
+kebijakan RLS untuk update sama sekali. Uji skema membuktikannya, dan
+langsung merah begitu kebijakan itu ditambahkan.
+
+Dua hal tidak pernah ikut mati, dan itu disengaja: **pesan masuk tetap
+dicatat** apa pun keadaannya, dan **permintaan berhenti tetap dihormati**.
+Membuang chat berarti pemiliknya kehilangan semua yang masuk selama mati.
+Mengabaikan opt-out berarti orang yang minta berhenti dikirimi kampanye lagi
+begitu layanan menyala.
+
+Keputusannya satu fungsi murni di `src/lib/layanan.ts`, dipakai empat tempat:
+webhook, antrean kampanye, tombol kirim, dan spanduk di layar.
+
 ### Peran dan super admin
 
 Dua hal yang berbeda dan sering tertukar:
@@ -292,6 +314,9 @@ bertambah.
   cuma tampilan.
 - **Hak super admin** perlu diperketat sebelum ada tenant kedua.
 - **Site URL Supabase** sudah diganti ke domain produksi.
+- **Mematikan layanan sudah bisa**, dan terbukti bolak-balik di produksi:
+  dijeda, pesan client tetap tercatat tanpa dibalas, dinyalakan lagi, AI
+  langsung menjawab dari materi yang sama tanpa satu pun input diulang.
 - **Fase 3 sudah jalan**, tapi belum pernah dipakai ke kontak sungguhan.
   Kampanye pertama sebaiknya kecil dulu, sepuluh sampai dua puluh kontak,
   dan hasilnya diperiksa sebelum daftar besar dimasukkan.
@@ -321,6 +346,7 @@ bertambah.
 | `npm run siapkan-tenant` | Mengisi tenant dan materi adminnya |
 | `npm run buat-pengguna` | Membuat akun masuk |
 | `npm run bersihkan-contoh` | Menghapus kontak percobaan |
+| `npm run tenant-aktif` | Melihat, menyuspensi, atau mengaktifkan tenant |
 
 Supabase CLI dijalankan lewat `npm run sb` yang memakai token khusus project
 ini dari `.env.local`, supaya login global untuk project Seawise lain tidak
