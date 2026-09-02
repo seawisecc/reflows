@@ -419,7 +419,7 @@ Keadaan produksi saat ditinggalkan:
 
 | | |
 |---|---|
-| Layanan | Berjalan, tidak dijeda maupun disuspensi |
+| Layanan | **DIJEDA** sejak 2 September 2026 pukul 14.25 WITA |
 | WhatsApp | Tersambung, +62 812-3759-7759, paket Fonnte Free |
 | Kontak | 5, semuanya asli |
 | Materi AI | 28 butir, 22 aktif |
@@ -427,6 +427,15 @@ Keadaan produksi saat ditinggalkan:
 | Invoice | Belum ada, penomoran mulai dari INV/2026/0001 |
 | Antrean cron | Jalan tiap menit, dijawab 200 |
 | Uji | 183 unit, 43 skema, 20 produksi, semua hijau |
+
+**Jedanya dipasang pemilik sendiri, bukan tertinggal dari pengujian.**
+Tujuh belas detik setelah dijeda, satu pesan berbunyi "Tes" masuk dan
+memang tercatat tanpa dibalas, jadi jedanya terbukti bekerja dari sisi
+pemilik juga.
+
+Selama masih dijeda, **AI tidak akan membalas chat client mana pun**, dan
+kampanye tidak akan mengirim. Pesan yang masuk tetap tercatat dan menunggu
+di inbox. Menyalakannya lagi satu tombol di halaman Pengaturan.
 
 Data uji semuanya sudah dibersihkan. Kalau ada sisa yang mencurigakan,
 periksa dengan `npm run tenant-aktif seawise`, yang menampilkan jumlah
