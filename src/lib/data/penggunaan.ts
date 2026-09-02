@@ -22,14 +22,23 @@ export type PemakaianHarian = {
   biaya_dolar: number;
 };
 
+export type JenisPemakaian = "balasan" | "impor";
+
+export type PemakaianJenis = PemakaianModel & { jenis: JenisPemakaian };
+
 export type Penggunaan = {
   hari: number;
   panggilan: number;
+  /** Balasan chat ke client. Ini yang dihitung kuota paket. */
+  balasan: number;
+  /** Pembacaan dokumen dan halaman web. Tidak memakan kuota, tapi ditagih. */
+  impor: number;
   eskalasi: number;
   keyakinan_rata: number;
   latensi_tengah_ms: number;
   biaya_dolar: number;
   per_model: PemakaianModel[];
+  per_jenis: PemakaianJenis[];
   per_hari: PemakaianHarian[];
 };
 
@@ -58,12 +67,23 @@ export async function ambil_penggunaan(
 
   const m = data as unknown as Record<string, unknown>;
   const model_mentah = (m.per_model ?? []) as Record<string, unknown>[];
+  const jenis_mentah = (m.per_jenis ?? []) as Record<string, unknown>[];
   const hari_mentah = (m.per_hari ?? []) as Record<string, unknown>[];
 
   const per_model: PemakaianModel[] = model_mentah.map((b) => {
     const pakai = ke_pemakaian(b);
     return {
       ...pakai,
+      panggilan: Number(b.panggilan ?? 0),
+      biaya_dolar: biaya_dolar(pakai),
+    };
+  });
+
+  const per_jenis: PemakaianJenis[] = jenis_mentah.map((b) => {
+    const pakai = ke_pemakaian(b);
+    return {
+      ...pakai,
+      jenis: (b.jenis === "impor" ? "impor" : "balasan") as JenisPemakaian,
       panggilan: Number(b.panggilan ?? 0),
       biaya_dolar: biaya_dolar(pakai),
     };
@@ -84,11 +104,31 @@ export async function ambil_penggunaan(
   return {
     hari,
     panggilan: Number(m.panggilan ?? 0),
+    balasan: Number(m.balasan ?? 0),
+    impor: Number(m.impor ?? 0),
     eskalasi: Number(m.eskalasi ?? 0),
     keyakinan_rata: Number(m.keyakinan_rata ?? 0),
     latensi_tengah_ms: Number(m.latensi_tengah_ms ?? 0),
     biaya_dolar: per_model.reduce((n, p) => n + p.biaya_dolar, 0),
     per_model,
+    per_jenis,
     per_hari,
+  };
+}
+
+/** Menjumlahkan biaya satu jenis pemakaian. */
+export function biaya_jenis(
+  per_jenis: PemakaianJenis[],
+  jenis: JenisPemakaian,
+): { panggilan: number; biaya_dolar: number; token: number } {
+  const cocok = per_jenis.filter((p) => p.jenis === jenis);
+  return {
+    panggilan: cocok.reduce((n, p) => n + p.panggilan, 0),
+    biaya_dolar: cocok.reduce((n, p) => n + p.biaya_dolar, 0),
+    token: cocok.reduce(
+      (n, p) =>
+        n + p.token_masuk + p.token_keluar + p.token_cache_baca + p.token_cache_tulis,
+      0,
+    ),
   };
 }

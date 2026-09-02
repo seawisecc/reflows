@@ -1,11 +1,11 @@
-import { Bot, Coins, Gauge, TriangleAlert } from "lucide-react";
+import { Bot, BookOpen, Coins, Gauge, TriangleAlert } from "lucide-react";
 import { BilahAtas } from "@/komponen/shell/bilah-atas";
 import { Kartu, KepalaKartu } from "@/komponen/ui/kartu";
 import { KartuStatistik } from "@/komponen/ui/statistik";
 import { Tabel, KepalaTabel, Th, Tr, Td } from "@/komponen/ui/tabel";
 import { Kosong } from "@/komponen/ui/kosong";
 import { Lencana } from "@/komponen/ui/lencana";
-import { ambil_penggunaan } from "@/lib/data/penggunaan";
+import { ambil_penggunaan, biaya_jenis } from "@/lib/data/penggunaan";
 import { ambil_kuota } from "@/lib/data/kuota";
 import { KartuKuota } from "@/komponen/kartu-kuota";
 import { pengaturan_ringkas } from "@/lib/data/pengaturan";
@@ -120,6 +120,62 @@ export default async function HalamanPenggunaan() {
             }
           />
         </section>
+
+        <Kartu>
+          <KepalaKartu
+            judul="Dipakai untuk apa"
+            keterangan="Dua-duanya memanggil Claude dan dua-duanya ditagih, tapi cuma balasan yang memakan kuota paket."
+          />
+          <div className="grid gap-px bg-[var(--garis)] sm:grid-cols-2">
+            {(
+              [
+                {
+                  jenis: "balasan" as const,
+                  ikon: Bot,
+                  judul: "Balasan ke client",
+                  catatan: "Memakan kuota paket",
+                },
+                {
+                  jenis: "impor" as const,
+                  ikon: BookOpen,
+                  judul: "Baca dokumen dan web",
+                  catatan: "Tidak memakan kuota, tapi tetap ditagih",
+                },
+              ]
+            ).map((b) => {
+              const Ikon = b.ikon;
+              const h = biaya_jenis(pakai.per_jenis, b.jenis);
+              const porsi =
+                pakai.biaya_dolar > 0
+                  ? Math.round((h.biaya_dolar / pakai.biaya_dolar) * 100)
+                  : 0;
+              return (
+                <div key={b.jenis} className="space-y-2 bg-permukaan p-4">
+                  <div className="flex items-center gap-2">
+                    <Ikon className="size-4 shrink-0 text-redup" />
+                    <span className="pixel-sm uppercase text-redup">{b.judul}</span>
+                  </div>
+                  <p className="angka text-2xl font-bold text-teks">
+                    ${h.biaya_dolar.toFixed(4)}
+                    <span className="ml-2 text-sm font-normal text-redup">
+                      {porsi}%
+                    </span>
+                  </p>
+                  <p className="text-xs leading-relaxed text-redup">
+                    {ke_angka(h.panggilan)} panggilan, {ke_angka(h.token)} token.{" "}
+                    {b.catatan}.
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="border-t-2 border-garis px-4 py-3 text-xs leading-relaxed text-redup">
+            Sebelum 2 September 2026, pembacaan dokumen tidak pernah dicatat
+            sama sekali, jadi angka di halaman ini lebih kecil daripada
+            tagihan sungguhan. Yang tercatat sebelum tanggal itu hanya
+            balasan.
+          </p>
+        </Kartu>
 
         <Kartu>
           <KepalaKartu

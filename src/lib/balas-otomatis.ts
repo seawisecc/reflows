@@ -64,6 +64,10 @@ async function catat_jejak(
   await db.from("jalan_ai").insert({
     tenant_id,
     pesan_id,
+    // Ditulis eksplisit, tidak mengandalkan nilai bawaan kolom. Bawaan
+    // gampang berubah di migrasi berikutnya tanpa ada yang sadar bahwa
+    // kuota paket bergantung padanya.
+    jenis: "balasan",
     model: jejak.model,
     token_masuk: jejak.token_masuk,
     token_keluar: jejak.token_keluar,

@@ -312,6 +312,53 @@ async function main() {
     `hasil: ${JSON.stringify(per_model)}`,
   );
 
+  // ---- Kuota tidak boleh ikut menghitung impor dokumen ----
+  // Paket menjanjikan jumlah BALASAN. Kalau impor ikut terhitung, tenant
+  // yang merapikan materinya sekali kehilangan puluhan balasan dari
+  // kuotanya, padahal paketnya tidak pernah menjanjikan jumlah impor.
+  await db.exec(`reset role;`);
+  await db.exec(`
+    insert into public.jalan_ai (tenant_id, jenis, model, token_masuk, token_keluar)
+    values
+      ('aaaaaaaa-0000-0000-0000-000000000001', 'impor', 'claude-haiku-4-5', 30000, 2000),
+      ('aaaaaaaa-0000-0000-0000-000000000001', 'impor', 'claude-haiku-4-5', 12000, 900);
+  `);
+
+  await jadiPengguna("11111111-1111-1111-1111-111111111111");
+  const kuota = await db.query<{ k: Record<string, number> }>(
+    `select public.kuota_bulan_ini() as k`,
+  );
+  const k = kuota.rows[0]?.k;
+  periksa(
+    "kuota cuma menghitung balasan, bukan impor",
+    Number(k?.terpakai) === 1,
+    `terpakai: ${k?.terpakai}, seharusnya 1 balasan saja`,
+  );
+  periksa(
+    "impor tetap terhitung sendiri, tidak hilang dari pembukuan",
+    Number(k?.impor) === 2,
+    `impor: ${k?.impor}`,
+  );
+  periksa(
+    "token menghitung dua-duanya, karena dua-duanya ditagih",
+    Number(k?.token_masuk) === 43000 && Number(k?.token_keluar) === 3100,
+    `masuk ${k?.token_masuk}, keluar ${k?.token_keluar}`,
+  );
+
+  const pakai_pecah = await db.query<{ p: Record<string, unknown> }>(
+    `select public.penggunaan_ai(30) as p`,
+  );
+  const pp = pakai_pecah.rows[0]?.p as { balasan?: number; impor?: number };
+  periksa(
+    "halaman penggunaan memecah balasan dan impor",
+    Number(pp?.balasan) === 1 && Number(pp?.impor) === 2,
+    `balasan ${pp?.balasan}, impor ${pp?.impor}`,
+  );
+
+  // Dibersihkan supaya blok berikutnya tidak terpengaruh.
+  await db.exec(`reset role;`);
+  await db.exec(`delete from public.jalan_ai where jenis = 'impor';`);
+
   await jadiPengguna("22222222-2222-2222-2222-222222222222");
   const ringkasRatna = await db.query<{ r: Record<string, number> }>(
     `select public.ringkasan_dasbor() as r`,

@@ -17,6 +17,8 @@ export type Kuota = IzinKuota & {
   batas_kelebihan: number | null;
   sejak: string;
   tagihan: number;
+  /** Pembacaan dokumen bulan ini. Tidak memakan kuota, tapi ikut ditagih. */
+  impor: number;
 };
 
 /**
@@ -55,5 +57,6 @@ export async function ambil_kuota(): Promise<Kuota | null> {
     batas_kelebihan: batas,
     sejak: String(m.sejak ?? ""),
     tagihan: tagihan_bulan_ini(keadaan),
+    impor: Number(m.impor ?? 0),
   };
 }

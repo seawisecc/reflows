@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { klien_server } from "@/lib/supabase/server";
 import { tenant_saya } from "@/lib/data/pengaturan";
-import { ekstrak_materi } from "@/lib/impor/ekstrak";
+import { ekstrak_materi, type JejakImpor } from "@/lib/impor/ekstrak";
 import { ambil_halaman } from "@/lib/impor/web";
 import { baca_csv, baca_xlsx, tabel_ke_teks } from "@/lib/impor/tabel";
 import type { Sumber } from "@/lib/impor/jenis";
@@ -91,6 +91,43 @@ async function siapkan_sumber(data: FormData): Promise<Sumber | { galat: string 
   };
 }
 
+/**
+ * Mencatat pemakaian model saat membaca dokumen.
+ *
+ * Dipanggil begitu modelnya selesai dipanggil, bukan saat hasil bacaannya
+ * disimpan. Tokennya sudah terpakai dan sudah ditagih walaupun pemiliknya
+ * lalu membuang seluruh hasilnya.
+ *
+ * Kegagalan mencatat tidak boleh menggagalkan impornya. Hasil bacaan yang
+ * hilang gara-gara satu baris pembukuan jauh lebih merugikan daripada satu
+ * angka biaya yang meleset.
+ */
+async function catat_impor(
+  tenant_id: string,
+  jejak: JejakImpor,
+  asal: string,
+): Promise<void> {
+  try {
+    const db = await klien_server();
+    await db.from("jalan_ai").insert({
+      tenant_id,
+      pesan_id: null,
+      jenis: "impor",
+      model: jejak.model,
+      token_masuk: jejak.token_masuk,
+      token_keluar: jejak.token_keluar,
+      token_cache_baca: jejak.token_cache_baca,
+      token_cache_tulis: jejak.token_cache_tulis,
+      latensi_ms: jejak.latensi_ms,
+      keyakinan: null,
+      dieskalasi: false,
+      alasan: asal.slice(0, 300),
+    });
+  } catch {
+    // Sengaja didiamkan, lihat komentar di atas.
+  }
+}
+
 export async function impor_materi(
   _sebelumnya: KeadaanImpor,
   data: FormData,
@@ -103,6 +140,8 @@ export async function impor_materi(
 
   const hasil = await ekstrak_materi(sumber);
   if (!hasil.ok) return gagal(hasil.alasan);
+
+  await catat_impor(tenant_id, hasil.jejak, sumber.label);
 
   const kosong =
     hasil.hasil.layanan.length === 0 &&

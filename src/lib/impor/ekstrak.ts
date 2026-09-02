@@ -65,8 +65,28 @@ Aturan yang tidak boleh dilanggar:
 Kalau dokumennya tidak memuat informasi layanan maupun pertanyaan, kembalikan
 daftar kosong. Itu jawaban yang benar, bukan kegagalan.`;
 
+/**
+ * Jejak pemakaian model, bentuknya sama dengan yang dikembalikan mesin
+ * balasan. Disamakan supaya keduanya bisa dicatat ke tabel jalan_ai lewat
+ * jalur yang sama, dan biaya di layar Penggunaan tidak lagi cuma sebagian.
+ */
+export type JejakImpor = {
+  model: string;
+  token_masuk: number;
+  token_keluar: number;
+  token_cache_baca: number;
+  token_cache_tulis: number;
+  latensi_ms: number;
+};
+
 export type HasilImpor =
-  | { ok: true; hasil: HasilEkstraksi; token_masuk: number; token_keluar: number }
+  | {
+      ok: true;
+      hasil: HasilEkstraksi;
+      token_masuk: number;
+      token_keluar: number;
+      jejak: JejakImpor;
+    }
   | { ok: false; alasan: string };
 
 function isi_pesan(sumber: Sumber): Anthropic.Beta.BetaContentBlockParam[] {
@@ -105,6 +125,7 @@ export async function ekstrak_materi(sumber: Sumber): Promise<HasilImpor> {
 
   const client = new Anthropic();
   const model = model_terpakai();
+  const mulai = Date.now();
 
   // Haiku 4.5 menolak adaptive thinking dan effort dengan galat 400, jadi
   // parameter itu cuma dikirim ke model yang memang mendukungnya.
@@ -174,5 +195,13 @@ export async function ekstrak_materi(sumber: Sumber): Promise<HasilImpor> {
     hasil,
     token_masuk: jawaban.usage.input_tokens,
     token_keluar: jawaban.usage.output_tokens,
+    jejak: {
+      model,
+      token_masuk: jawaban.usage.input_tokens,
+      token_keluar: jawaban.usage.output_tokens,
+      token_cache_baca: jawaban.usage.cache_read_input_tokens ?? 0,
+      token_cache_tulis: jawaban.usage.cache_creation_input_tokens ?? 0,
+      latensi_ms: Date.now() - mulai,
+    },
   };
 }
