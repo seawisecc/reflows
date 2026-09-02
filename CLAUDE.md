@@ -274,6 +274,17 @@ Dicatat supaya tidak terulang.
     teks harus muat di WinAnsi, jadi kutip melengkung dan emoji dibersihkan
     di `aman()` sebelum digambar. Kalau lolos apa adanya, pdf-lib melempar
     galat dan invoicenya gagal terbit tepat saat mau dikirim ke client.
+20. **Ada DUA tempat yang memanggil Claude, dan dua-duanya harus dicatat.**
+    `balas-otomatis.ts` untuk balasan chat, `impor/ekstrak.ts` untuk membaca
+    dokumen. Yang kedua sempat tidak pernah masuk `jalan_ai` sama sekali,
+    jadi halaman Penggunaan mengaku menampilkan biaya AI padahal cuma
+    sebagian. Kolom `jenis` sekarang memisahkannya: kuota paket menghitung
+    `balasan` saja, biaya menghitung dua-duanya.
+21. **Claude Console menghitung se-organisasi, bukan se-project.** Selama
+    satu API key dipakai semua project Seawise, angka di Console tidak akan
+    pernah cocok dengan angka di Reflows. Cara memastikan: Usage, Group by
+    API Key, lalu Group by Model. Model selain Haiku 4.5 sudah pasti bukan
+    Reflows, karena `MODEL_BALASAN` dan `MODEL_EKSTRAKSI` tidak diset.
 
 ---
 
@@ -342,6 +353,9 @@ bertambah.
   cuma tampilan.
 - **Akun administrasi platform** yang terpisah dari akun harian belum
   dibuat. Sampai itu ada, `/platform` cuma menampilkan satu tenant.
+- **API key Claude masih satu untuk seluruh organisasi.** Selama begitu,
+  angka di Console tidak bisa dibandingkan dengan angka di Reflows. Perlu
+  key terpisah khusus Reflows.
 - **Site URL Supabase** sudah diganti ke domain produksi.
 - **Mematikan layanan sudah bisa**, dan terbukti bolak-balik di produksi:
   dijeda, pesan client tetap tercatat tanpa dibalas, dinyalakan lagi, AI

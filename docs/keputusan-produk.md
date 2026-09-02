@@ -437,3 +437,46 @@ peran di TypeScript sama sekali. Fungsi SQL-nya `security invoker`, jadi RLS
 yang menyaring, dan akun biasa yang membukanya cuma melihat tenantnya
 sendiri. Menambahkan pemeriksaan peran di aplikasi hanya menciptakan gerbang
 kedua yang suatu saat akan berbeda pendapat dengan gerbang pertama.
+
+## Kenapa impor dokumen dicatat terpisah dari balasan
+
+Reflows memanggil Claude di dua tempat: membalas chat, dan membaca dokumen
+atau halaman web saat impor materi. Sampai 2 September 2026, cuma yang
+pertama yang dicatat ke `jalan_ai`. Akibatnya halaman Penggunaan mengaku
+menampilkan biaya AI padahal cuma sebagian.
+
+Ketahuannya dengan membandingkan angka Reflows terhadap Claude Console.
+Selisih pemakaian pada 2 September persis 4.771 token, dan itu persis token
+satu impor halaman web yang layar impornya sendiri sudah menampilkan 3.157
+masuk dan 1.614 keluar. Cocok sampai satu token.
+
+Keduanya sekarang masuk tabel yang sama dengan kolom `jenis` yang
+membedakan. Pemisahan itu menentukan dua hal yang berlawanan:
+
+- **Kuota paket hanya menghitung `balasan`.** Paket menjanjikan jumlah
+  balasan dan tidak pernah menjanjikan jumlah impor. Tenant yang merapikan
+  materinya sekali tidak boleh kehilangan puluhan balasan dari kuotanya
+  gara-gara itu.
+- **Biaya menghitung keduanya.** Dua-duanya memanggil model dan dua-duanya
+  ditagih Anthropic, jadi laporan yang cuma memuat satu di antaranya bukan
+  laporan biaya.
+
+Pencatatannya dilakukan begitu modelnya selesai dipanggil, bukan saat hasil
+bacaannya disimpan. Tokennya sudah terpakai dan sudah ditagih walaupun
+pemiliknya lalu membuang seluruh hasilnya. Kegagalan mencatat sengaja
+didiamkan, karena hasil bacaan yang hilang gara-gara satu baris pembukuan
+jauh lebih merugikan daripada satu angka biaya yang meleset.
+
+Kolom `alasan` dipakai ulang untuk menyimpan asal dokumennya, jadi kelihatan
+berkas mana yang mahal.
+
+### Yang tidak bisa diperbaiki dari dalam Reflows
+
+Claude Console menghitung pemakaian se-organisasi, bukan se-project. Selama
+satu API key dipakai semua project Seawise, angka di sana akan selalu lebih
+besar daripada angka di Reflows, dan bedanya bukan kesalahan pencatatan.
+Yang perlu dilakukan di luar: membuat API key terpisah khusus Reflows.
+
+Penanda cepat untuk membedakan: Reflows tidak pernah memakai model selain
+Haiku 4.5 kecuali `MODEL_BALASAN` atau `MODEL_EKSTRAKSI` diset. Kalau di
+Console muncul Sonnet atau Opus, itu sudah pasti bukan Reflows.
