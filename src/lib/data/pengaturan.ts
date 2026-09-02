@@ -183,3 +183,37 @@ export async function status_perangkat() {
 }
 
 export { tenant_saya };
+
+export type PengaturanInvoice = {
+  alamat_bisnis: string | null;
+  bank_nama: string | null;
+  bank_rekening: string | null;
+  bank_atas_nama: string | null;
+  catatan_invoice: string | null;
+  ppn_persen: number;
+  tempo_hari: number;
+};
+
+/** Bagian pengaturan yang khusus dipakai invoice. */
+export const ambil_pengaturan_invoice = cache(
+  async function ambil_pengaturan_invoice(): Promise<PengaturanInvoice | null> {
+    if (!supabase_siap()) return null;
+    const db = await klien_server();
+    const { data } = await db
+      .from("pengaturan_tenant")
+      .select(
+        "alamat_bisnis, bank_nama, bank_rekening, bank_atas_nama, catatan_invoice, ppn_persen, tempo_hari",
+      )
+      .maybeSingle();
+    if (!data) return null;
+    return {
+      alamat_bisnis: (data.alamat_bisnis as string | null) ?? null,
+      bank_nama: (data.bank_nama as string | null) ?? null,
+      bank_rekening: (data.bank_rekening as string | null) ?? null,
+      bank_atas_nama: (data.bank_atas_nama as string | null) ?? null,
+      catatan_invoice: (data.catatan_invoice as string | null) ?? null,
+      ppn_persen: Number(data.ppn_persen ?? 0),
+      tempo_hari: Number(data.tempo_hari ?? 7),
+    };
+  },
+);

@@ -248,3 +248,55 @@ export async function ubah_jeda(
   revalidatePath("/kampanye");
   return { galat: null };
 }
+
+/**
+ * Identitas penerbit invoice.
+ *
+ * Terpisah dari simpan_pengaturan karena isinya beda urusan, dan karena
+ * form yang terlalu panjang membuat orang menyimpan hal yang tidak sengaja
+ * mereka ubah. Kolom-kolom ini cuma dibaca saat invoice diterbitkan, lalu
+ * disalin ke barisnya, jadi mengubahnya tidak menyentuh invoice lama.
+ */
+export async function simpan_pengaturan_invoice(
+  _sebelumnya: KeadaanPengaturan,
+  data: FormData,
+): Promise<KeadaanPengaturan> {
+  const tenant_id = await tenant_saya();
+  if (!tenant_id) return { galat: "Sesi kamu sudah habis. Masuk lagi ya.", pesan: null };
+
+  const ppn = Number(String(data.get("ppn_persen") ?? "0").replace(",", "."));
+  if (!Number.isFinite(ppn) || ppn < 0 || ppn > 100) {
+    return { galat: "PPN harus antara 0 dan 100 persen.", pesan: null };
+  }
+
+  const tempo = Number(String(data.get("tempo_hari") ?? "7").replace(/[^\d]/g, ""));
+  if (!Number.isFinite(tempo) || tempo < 0 || tempo > 365) {
+    return { galat: "Tempo pembayaran harus antara 0 dan 365 hari.", pesan: null };
+  }
+
+  const teks = (kunci: string, batas: number) =>
+    String(data.get(kunci) ?? "").trim().slice(0, batas) || null;
+
+  const db = await klien_server();
+  const { error } = await db
+    .from("pengaturan_tenant")
+    .update({
+      alamat_bisnis: teks("alamat_bisnis", 300),
+      bank_nama: teks("bank_nama", 60),
+      bank_rekening: teks("bank_rekening", 40),
+      bank_atas_nama: teks("bank_atas_nama", 120),
+      catatan_invoice: teks("catatan_invoice", 1000),
+      ppn_persen: ppn,
+      tempo_hari: tempo,
+    })
+    .eq("tenant_id", tenant_id);
+
+  if (error) return { galat: `Gagal menyimpan: ${error.message}`, pesan: null };
+
+  revalidatePath("/pengaturan");
+  revalidatePath("/invoice");
+  return {
+    galat: null,
+    pesan: "Identitas invoice tersimpan. Invoice yang sudah terbit tidak ikut berubah.",
+  };
+}

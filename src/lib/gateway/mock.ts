@@ -29,15 +29,19 @@ export function gateway_mock(): Gateway & { terkirim: PesanTercatat[] } {
     nama: "mock",
     terkirim,
 
-    async kirim({ ke, isi }: PermintaanKirim): Promise<HasilKirim> {
+    async kirim({ ke, isi, berkas }: PermintaanKirim): Promise<HasilKirim> {
       const tujuan = normalkan_nomor(ke);
       if (!tujuan) return { ok: false, alasan: `Nomor tujuan tidak sah: ${ke}` };
-      if (!isi.trim()) return { ok: false, alasan: "Isi pesan kosong" };
+      // Pesan berlampiran boleh tanpa teks, karena berkasnya yang jadi isi.
+      if (!isi.trim() && !berkas) {
+        return { ok: false, alasan: "Isi pesan kosong" };
+      }
 
       urutan += 1;
       const catatan: PesanTercatat = {
         ke: tujuan,
         isi,
+        berkas: berkas ?? null,
         wa_message_id: `mock-${urutan}`,
         waktu: new Date().toISOString(),
       };

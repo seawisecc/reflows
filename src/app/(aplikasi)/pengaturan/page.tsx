@@ -4,10 +4,11 @@ import { BilahAtas } from "@/komponen/shell/bilah-atas";
 import { Kartu, KepalaKartu, IsiKartu } from "@/komponen/ui/kartu";
 import { Kosong } from "@/komponen/ui/kosong";
 import { Lencana } from "@/komponen/ui/lencana";
-import { ambil_pengaturan } from "@/lib/data/pengaturan";
+import { ambil_pengaturan, ambil_pengaturan_invoice } from "@/lib/data/pengaturan";
 import { FormulirPengaturan } from "./formulir";
 import { PanelQr } from "./panel-qr";
 import { SaklarLayanan } from "./saklar";
+import { FormulirInvoice } from "./formulir-invoice";
 import { UrlWebhook } from "./salin";
 
 export const metadata = { title: "Pengaturan | Reflows" };
@@ -32,7 +33,10 @@ async function asal(): Promise<string> {
 }
 
 export default async function HalamanPengaturan() {
-  const pengaturan = await ambil_pengaturan(await asal());
+  const [pengaturan, invoice] = await Promise.all([
+    ambil_pengaturan(await asal()),
+    ambil_pengaturan_invoice(),
+  ]);
 
   return (
     <>
@@ -59,6 +63,8 @@ export default async function HalamanPengaturan() {
             <FormulirPengaturan awal={pengaturan} />
 
             <PanelQr awal={pengaturan} />
+
+            {invoice ? <FormulirInvoice awal={invoice} /> : null}
 
             {pengaturan.url_webhook ? (
               <Kartu>

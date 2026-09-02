@@ -139,9 +139,16 @@ export function gateway_fonnte(token: string): Gateway {
   return {
     nama: "fonnte",
 
-    async kirim({ ke, isi }: PermintaanKirim): Promise<HasilKirim> {
+    async kirim({ ke, isi, berkas }: PermintaanKirim): Promise<HasilKirim> {
       const tujuan = normalkan_nomor(ke);
       if (!tujuan) return { ok: false, alasan: `Nomor tujuan tidak sah: ${ke}` };
+
+      // Fonnte mengunduh berkasnya sendiri dari url yang kita berikan, jadi
+      // alamatnya harus masih berlaku saat Fonnte membukanya, bukan cuma
+      // saat permintaan ini dikirim.
+      const lampiran = berkas
+        ? { url: berkas.url, filename: berkas.nama }
+        : {};
 
       let jawaban: Response;
       try {
@@ -151,7 +158,7 @@ export function gateway_fonnte(token: string): Gateway {
             Authorization: token,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ target: tujuan, message: isi }),
+          body: JSON.stringify({ target: tujuan, message: isi, ...lampiran }),
         });
       } catch (e) {
         return {

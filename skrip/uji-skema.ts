@@ -69,9 +69,9 @@ async function main() {
   // Disebut satu per satu, bukan dihitung. Hitungan yang cocok tidak
   // membuktikan tabel yang benar terbentuk, cuma membuktikan jumlahnya sama.
   const DIHARAPKAN = [
-    "jalan_ai", "kampanye", "kontak", "langkah_kampanye", "log_audit",
-    "pengaturan_tenant", "pengetahuan", "pengguna", "percakapan", "pesan",
-    "sasaran_kampanye", "tenants",
+    "baris_invoice", "invoice", "jalan_ai", "kampanye", "kontak",
+    "langkah_kampanye", "log_audit", "pengaturan_tenant", "pengetahuan",
+    "pengguna", "percakapan", "pesan", "sasaran_kampanye", "tenants",
   ];
   const kurang = DIHARAPKAN.filter((t) => !namaTabel.includes(t));
   periksa(
@@ -372,6 +372,104 @@ async function main() {
   await db.exec(`reset role;`);
   await db.exec(
     `update public.pengaturan_tenant set dijeda_at = null, alasan_jeda = null;`,
+  );
+
+  // ---- Penomoran invoice ----
+  // Nomor yang kembar berarti dua client menerima tagihan dengan nomor sama,
+  // dan pembukuan tenant langsung kacau. Diambil lewat UPDATE yang mengunci
+  // barisnya, bukan max + 1, dan itu yang dibuktikan di sini.
+  console.log("\nPenomoran invoice");
+  await jadiPengguna("11111111-1111-1111-1111-111111111111");
+
+  const nomor1 = await db.query<{ n: string }>(
+    `select public.nomor_invoice_berikutnya() as n`,
+  );
+  const nomor2 = await db.query<{ n: string }>(
+    `select public.nomor_invoice_berikutnya() as n`,
+  );
+  const tahun = new Date().getFullYear();
+  periksa(
+    "nomor pertama berbentuk INV/tahun/0001",
+    nomor1.rows[0]?.n === `INV/${tahun}/0001`,
+    `nilai: ${nomor1.rows[0]?.n}`,
+  );
+  periksa(
+    "nomor kedua naik satu, tidak pernah kembar",
+    nomor2.rows[0]?.n === `INV/${tahun}/0002`,
+    `nilai: ${nomor2.rows[0]?.n}`,
+  );
+
+  // Parameter tenant cuma dipakai kalau tidak ada sesi. Pemakai yang login
+  // tidak boleh bisa menghabiskan nomor tenant lain lewat parameter itu.
+  const nomor_curang = await db.query<{ n: string }>(
+    `select public.nomor_invoice_berikutnya(
+       'bbbbbbbb-0000-0000-0000-000000000002'
+     ) as n`,
+  );
+  periksa(
+    "parameter tenant diabaikan selama ada sesi",
+    nomor_curang.rows[0]?.n === `INV/${tahun}/0003`,
+    `nilai: ${nomor_curang.rows[0]?.n}`,
+  );
+
+  // Dibaca tanpa peran, karena sebagai Agus barisnya memang disaring RLS
+  // dan hasilnya kosong, bukan nol.
+  await db.exec(`reset role;`);
+  const urutan_ratna = await db.query<{ urutan_invoice: number }>(
+    `select urutan_invoice from public.pengaturan_tenant
+      where tenant_id = 'bbbbbbbb-0000-0000-0000-000000000002'`,
+  );
+  await jadiPengguna("11111111-1111-1111-1111-111111111111");
+  periksa(
+    "penghitung tenant lain tidak tersentuh",
+    Number(urutan_ratna.rows[0]?.urutan_invoice ?? -1) === 0,
+    `nilai: ${urutan_ratna.rows[0]?.urutan_invoice}`,
+  );
+
+  await tolak(
+    db,
+    "pemakai tidak boleh menulis penghitung nomornya sendiri",
+    `update public.pengaturan_tenant set urutan_invoice = 999
+      where tenant_id = 'aaaaaaaa-0000-0000-0000-000000000001'`,
+    "permission denied",
+  );
+
+  // ---- Isolasi invoice ----
+  console.log("\nIsolasi invoice");
+  await db.exec(`reset role;`);
+  await db.exec(`
+    insert into public.invoice (
+      tenant_id, kontak_id, nomor, penerbit_nama, klien_nama, klien_nomor_wa,
+      jatuh_tempo_at, subtotal, total
+    )
+    select 'bbbbbbbb-0000-0000-0000-000000000002', id, 'INV/9999/0001',
+           'Katering Sari Rasa', 'Klien Rahasia', '628222000001',
+           current_date + 7, 1000000, 1000000
+      from public.kontak where nomor_wa = '628222000001';
+  `);
+
+  await jadiPengguna("11111111-1111-1111-1111-111111111111");
+  const invoice_bocor = await db.query(`select nomor from public.invoice`);
+  periksa(
+    "invoice tenant lain tidak terlihat",
+    invoice_bocor.rows.length === 0,
+    `terlihat: ${invoice_bocor.rows.length}`,
+  );
+
+  // Kontaknya sengaja milik Agus sendiri. Kalau memakai kontak Ratna,
+  // SELECT-nya sudah disaring RLS lebih dulu dan tidak ada baris yang
+  // disisipkan sama sekali, jadi ujinya lolos tanpa pernah menguji apa pun.
+  await tolak(
+    db,
+    "tidak bisa menyisipkan invoice atas nama tenant lain",
+    `insert into public.invoice (
+       tenant_id, kontak_id, nomor, penerbit_nama, klien_nama, klien_nomor_wa,
+       jatuh_tempo_at
+     )
+     select 'bbbbbbbb-0000-0000-0000-000000000002', id, 'INV/9999/0002',
+            'Palsu', 'Palsu', '628111000001', current_date
+       from public.kontak where nomor_wa = '628111000001'`,
+    "row-level security",
   );
 
   console.log("\nHak service_role");

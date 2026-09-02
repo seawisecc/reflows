@@ -111,3 +111,41 @@ export interface AngkaKampanye {
   kuota_harian: number;
   hari_ke: number;
 }
+
+export type StatusInvoice = "draf" | "terkirim" | "lunas" | "batal";
+
+export interface BarisInvoice {
+  id: string;
+  urutan: number;
+  deskripsi: string;
+  jumlah: number;
+  harga_satuan: number;
+}
+
+export interface Invoice {
+  id: string;
+  nomor: string;
+  status: StatusInvoice;
+  kontak_id: string;
+  klien_nama: string;
+  klien_nomor_wa: string;
+  penerbit_nama: string;
+  penerbit_alamat: string | null;
+  penerbit_nomor_wa: string | null;
+  bank_nama: string | null;
+  bank_rekening: string | null;
+  bank_atas_nama: string | null;
+  terbit_at: string;
+  jatuh_tempo_at: string;
+  diskon: number;
+  ppn_persen: number;
+  catatan: string | null;
+  subtotal: number;
+  nilai_ppn: number;
+  total: number;
+  berkas_path: string | null;
+  dikirim_at: string | null;
+  lunas_at: string | null;
+  dibuat_at: string;
+  baris: BarisInvoice[];
+}

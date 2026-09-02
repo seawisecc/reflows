@@ -27,6 +27,7 @@ export const NAVIGASI: GrupNav[] = [
       { href: "/percakapan", label: "Percakapan", ikon: MessagesSquare },
       { href: "/kontak", label: "Kontak", ikon: Users },
       { href: "/kampanye", label: "Kampanye", ikon: Send },
+      { href: "/invoice", label: "Invoice", ikon: Receipt },
     ],
   },
   {
@@ -35,12 +36,6 @@ export const NAVIGASI: GrupNav[] = [
       { href: "/pengetahuan", label: "Pengetahuan", ikon: BookOpen },
       { href: "/pengaturan", label: "Pengaturan", ikon: Settings },
       { href: "/penggunaan", label: "Penggunaan", ikon: Coins },
-    ],
-  },
-  {
-    judul: "Menyusul",
-    item: [
-      { href: "/invoice", label: "Invoice", ikon: Receipt, nanti: "Fase 4" },
     ],
   },
 ];

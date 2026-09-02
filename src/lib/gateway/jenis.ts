@@ -26,6 +26,14 @@ export type HasilKirim =
 export type PermintaanKirim = {
   ke: string;
   isi: string;
+  /**
+   * Berkas yang ikut dikirim, misalnya PDF invoice.
+   *
+   * Yang dikirim alamatnya, bukan isinya. Gateway yang mengunduh sendiri,
+   * jadi alamatnya harus bisa dijangkau dari internet dan masih berlaku saat
+   * gateway membukanya, bukan cuma saat kita mengirimnya.
+   */
+  berkas?: { url: string; nama: string } | null;
 };
 
 /**
