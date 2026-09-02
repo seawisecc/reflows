@@ -336,46 +336,101 @@ pesan masuk
 
 ### Biaya terukur
 
-Sekitar **$0,002 per balasan** dengan Haiku 4.5, atau **$2 per seribu
-balasan**. Impor dokumen sekitar $0,004 sekali jalan.
+Diukur dari tabel `jalan_ai`, bukan diperkirakan. Per 2 September 2026:
 
-Instruksi tetap sudah ditandai untuk prompt caching, tapi materi admin
-Seawise baru sekitar 700 token, di bawah ambang minimum cache Haiku, jadi
-cache belum pernah kena. Penghematannya berlaku sendiri begitu materinya
-bertambah.
+| | Panggilan | Per panggilan |
+|---|---|---|
+| Balasan ke client | 6 | $0,0025, sekitar Rp 42 |
+| Baca dokumen atau web | 1 | $0,0027, sekitar Rp 44 |
+
+Angka balasan naik dari $0,002 setelah materi diselaraskan dengan situs,
+karena instruksi tetapnya ikut membesar. Token masuk satu balasan sekarang
+sekitar 2.900, dari sebelumnya 1.550.
+
+**Prompt caching masih belum pernah kena satu kali pun.** Kolom
+`token_cache_baca` dan `token_cache_tulis` semuanya nol. Dua sebab yang
+mungkin, dan belum dipisahkan: instruksinya masih di bawah ambang minimum
+cache Haiku, atau umur cache lima menit selalu habis karena chat masuk
+jarang. Kalau nanti mau dikejar, yang perlu diperiksa dulu ukuran instruksi
+tetapnya, bukan langsung mengubah kode.
 
 ---
 
-## Yang perlu diputuskan berikutnya
+## Yang menunggu kamu, di luar kode
 
-- **Watermark Fonnte**: paket selain Master dan Ultra menempelkan "Sent via
-  fonnte.com" di setiap pesan. Ini menyentuh cara menjual Reflows, bukan
-  cuma tampilan.
-- **Akun administrasi platform** yang terpisah dari akun harian belum
-  dibuat. Sampai itu ada, `/platform` cuma menampilkan satu tenant.
-- **API key Claude masih satu untuk seluruh organisasi.** Selama begitu,
-  angka di Console tidak bisa dibandingkan dengan angka di Reflows. Perlu
-  key terpisah khusus Reflows.
-- **Site URL Supabase** sudah diganti ke domain produksi.
-- **Mematikan layanan sudah bisa**, dan terbukti bolak-balik di produksi:
-  dijeda, pesan client tetap tercatat tanpa dibalas, dinyalakan lagi, AI
-  langsung menjawab dari materi yang sama tanpa satu pun input diulang.
-- **Fase 3 sudah jalan**, tapi belum pernah dipakai ke kontak sungguhan.
-  Kampanye pertama sebaiknya kecil dulu, sepuluh sampai dua puluh kontak,
-  dan hasilnya diperiksa sebelum daftar besar dimasukkan.
-- **Identitas invoice belum diisi.** Alamat bisnis dan nomor rekening kosong
-  di Pengaturan, jadi PDF yang terbit sekarang tidak memuat cara pembayaran
-  dan client harus menanyakannya lagi.
-- **Materi AI sudah diselaraskan dengan seawise.id** pada 2 September 2026.
-  Empat paket website Shore, Reef, Current, dan Trench beserta harganya,
-  ditambah tujuh FAQ dan lima keterangan dari situs. Materi lama yang
-  bertabrakan dinonaktifkan, bukan dihapus, jadi masih bisa dihidupkan lagi
-  kalau ternyata memang dijual.
-- **Paket langganan** sudah dipaksakan mesin. Definisinya di
-  `src/lib/paket.ts`, alasannya di `docs/keputusan-produk.md`.
-- **Variabel lingkungan Preview** belum diisi, jadi deployment dari branch
-  akan gagal. Sengaja: mengisinya berarti preview bisa menulis ke database
-  produksi.
+Tidak satu pun bisa dikerjakan dari dalam repo ini.
+
+1. **Isi identitas invoice.** Alamat bisnis dan nomor rekening masih kosong
+   di Pengaturan, jadi PDF yang terbit sekarang tidak memuat cara
+   pembayaran dan client harus menanyakannya lagi.
+2. **Naikkan paket Fonnte ke Master.** Sekarang masih Free, jadi setiap
+   pesan keluar membawa tulisan "Sent via fonnte.com". Untuk balasan ke
+   client yang sudah kenal itu mengganggu, untuk sapaan pertama kampanye ke
+   prospek dingin itu mematikan kesan.
+3. **Buat API key Claude terpisah khusus Reflows.** Sekarang satu key untuk
+   seluruh organisasi Seawise, jadi angka di Console tidak akan pernah bisa
+   dibandingkan dengan angka di halaman Penggunaan.
+4. **Buat akun administrasi platform** yang terpisah dari akun harian.
+   `seawise.cc@gmail.com` sengaja bukan super admin, jadi `/platform`
+   sekarang cuma menampilkan satu tenant.
+
+## Yang perlu diputuskan
+
+- **Notifikasi ke HP.** Fonnte wajib menyalakan `autoread` supaya webhook
+  jalan, dan itu menandai pesan sebagai terbaca di seluruh perangkat. Jadi
+  notifikasi di HP tidak muncul, dan client melihat centang biru padahal
+  belum ada manusia yang baca. Satu-satunya jalan keluar adalah Reflows yang
+  mengirim notifikasinya sendiri ke nomor pribadi pemilik. Sudah dibahas,
+  belum dikerjakan atas permintaan pemilik.
+- **Balasan luar jam saat layanan dijeda.** Sekarang ikut mati, jadi client
+  melihat pesannya dibaca lalu didiamkan total. Mungkin lebih baik tetap
+  keluar, karena "dibaca lalu didiamkan" lebih buruk daripada balasan
+  otomatis yang jujur bilang sedang tidak aktif.
+- **Kampanye pertama.** Fase 3 jalan tapi belum pernah dipakai ke kontak
+  sungguhan. Mulai kecil, sepuluh sampai dua puluh kontak, periksa rasio
+  balasannya sebelum daftar besar dimasukkan.
+- **Variabel lingkungan Preview** sengaja dibiarkan kosong, jadi deployment
+  dari branch akan gagal build. Mengisinya berarti preview bisa menulis ke
+  database produksi. Kalau preview memang dibutuhkan, jalannya lewat project
+  Supabase kedua, bukan menyalin kunci produksi.
+
+---
+
+## Serah terima, 2 September 2026
+
+Semua fase selesai. Yang dikerjakan hari ini, berurutan:
+
+1. **GitHub disambungkan ke Vercel.** Sebelumnya deploy cuma lewat CLI.
+   Sekarang push ke `main` memicu deploy produksi sendiri.
+2. **Region fungsi dipatok `sin1`.** Sebelumnya `iad1` sementara database di
+   Singapura, jadi tiap query menyeberangi Pasifik. Halaman turun dari 530
+   sampai 1.100 ms jadi 140 sampai 300 ms.
+3. **Semua layar membaca data sungguhan.** Tidak ada lagi angka karangan.
+4. **Halaman Penggunaan** dibuat, tabel `jalan_ai` akhirnya dibaca.
+5. **Tiga paket langganan** dihitung, dicatat di `docs/keputusan-produk.md`.
+6. **Fase 3, 4, dan 5** digarap sampai selesai.
+7. **Saklar mematikan layanan**, dua buah, beda pemiliknya.
+8. **Materi AI diselaraskan dengan seawise.id.** Harga yang dipakai AI
+   ternyata tidak ada di situs sama sekali.
+9. **Impor dokumen akhirnya dicatat** ke `jalan_ai`. Sebelumnya halaman
+   Penggunaan mengaku menampilkan biaya AI padahal cuma sebagian.
+
+Keadaan produksi saat ditinggalkan:
+
+| | |
+|---|---|
+| Layanan | Berjalan, tidak dijeda maupun disuspensi |
+| WhatsApp | Tersambung, +62 812-3759-7759, paket Fonnte Free |
+| Kontak | 5, semuanya asli |
+| Materi AI | 28 butir, 22 aktif |
+| Kampanye | Belum ada satu pun |
+| Invoice | Belum ada, penomoran mulai dari INV/2026/0001 |
+| Antrean cron | Jalan tiap menit, dijawab 200 |
+| Uji | 183 unit, 43 skema, 20 produksi, semua hijau |
+
+Data uji semuanya sudah dibersihkan. Kalau ada sisa yang mencurigakan,
+periksa dengan `npm run tenant-aktif seawise`, yang menampilkan jumlah
+kontak, percakapan, pesan, dan materi.
 
 ---
 
@@ -385,6 +440,7 @@ bertambah.
 |---|---|
 | `npm run dev` | Server pengembangan |
 | `npm run periksa` | Lint, typecheck, periksa-aksi, tes, build |
+| `npm test` | Uji unit dan uji skema lewat PGlite, tanpa jaringan |
 | `npm run periksa:produksi` | Memeriksa database Supabase sungguhan |
 | `npm run uji-webhook` | Uji jalur webhook ujung ke ujung |
 | `npm run uji-auth` | Uji sesi dan isolasi antar tenant |
@@ -399,6 +455,12 @@ bertambah.
 | `npm run buat-pengguna` | Membuat akun masuk |
 | `npm run bersihkan-contoh` | Menghapus kontak percobaan |
 | `npm run tenant-aktif` | Melihat, menyuspensi, atau mengaktifkan tenant |
+
+Uji produksi menulis ke Supabase sungguhan lalu membersihkan sendiri, dan
+nomor sasarannya selalu berkode negara 999 yang dicadangkan ITU. Jangan
+pernah menggantinya dengan prefix Indonesia: sejak mesin balasan dan
+kampanye menyala, itu berarti orang asing menerima pesan dari nomor bisnis
+tenant setiap kali uji dijalankan.
 
 Supabase CLI dijalankan lewat `npm run sb` yang memakai token khusus project
 ini dari `.env.local`, supaya login global untuk project Seawise lain tidak
