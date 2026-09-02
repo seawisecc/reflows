@@ -158,6 +158,18 @@ export function gudang_supabase(db: SupabaseClient): Gudang {
         .update({ luar_jam_dibalas_at: waktu })
         .eq("id", percakapan_id);
     },
+
+    async hentikan_kampanye(tenant_id, kontak_id, alasan) {
+      // Lewat RPC, bukan update biasa, supaya penandaan waktu balasnya dan
+      // penyaringan statusnya jadi satu pernyataan. Kontak yang mengirim
+      // tiga pesan beruntun tidak boleh menggeser dibalas_at tiga kali.
+      const { data } = await db.rpc("hentikan_sasaran_kontak", {
+        p_tenant_id: tenant_id,
+        p_kontak_id: kontak_id,
+        p_alasan: alasan,
+      });
+      return Number(data ?? 0);
+    },
   };
 }
 
@@ -210,9 +222,11 @@ export async function catat_pesan_keluar(
     tenant_id: string;
     percakapan_id: string;
     isi: string;
-    pengirim: "ai" | "manusia";
+    pengirim: "ai" | "manusia" | "kampanye";
     status_kirim: "antre" | "terkirim" | "gagal";
     wa_message_id: string | null;
+    /** Diisi hanya kalau pesannya keluar dari mesin kampanye. */
+    kampanye_id?: string | null;
   },
 ): Promise<string | null> {
   const { data } = await db
@@ -225,6 +239,7 @@ export async function catat_pesan_keluar(
       isi: masukan.isi,
       status_kirim: masukan.status_kirim,
       wa_message_id: masukan.wa_message_id,
+      kampanye_id: masukan.kampanye_id ?? null,
     })
     .select("id")
     .single();

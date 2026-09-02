@@ -36,6 +36,8 @@ export function gudang_memori(tenant: KonteksTenant = TENANT_UJI) {
   const kontak = new Map<string, BarisKontak & { nomor: string; nama: string | null }>();
   const percakapan = new Map<string, BarisPercakapan & { kontak_id: string }>();
   const pesan: PesanTersimpan[] = [];
+  /** Sasaran kampanye yang masih mengantre, per kontak. */
+  const sasaran = new Map<string, { antre: number; alasan: string | null }>();
   let urut = 0;
 
   const gudang: Gudang = {
@@ -98,7 +100,28 @@ export function gudang_memori(tenant: KonteksTenant = TENANT_UJI) {
       const p = percakapan.get(percakapan_id);
       if (p) p.luar_jam_dibalas_at = waktu;
     },
+
+    async hentikan_kampanye(_tenant_id, kontak_id, alasan) {
+      const s = sasaran.get(kontak_id);
+      if (!s || s.antre === 0) return 0;
+      const jumlah = s.antre;
+      sasaran.set(kontak_id, { antre: 0, alasan });
+      return jumlah;
+    },
   };
 
-  return { gudang, rahasia_benar, kontak, percakapan, pesan };
+  /** Menaruh sasaran kampanye yang mengantre, untuk menguji penghentiannya. */
+  function daftarkan_sasaran(kontak_id: string, jumlah = 1) {
+    sasaran.set(kontak_id, { antre: jumlah, alasan: null });
+  }
+
+  return {
+    gudang,
+    rahasia_benar,
+    kontak,
+    percakapan,
+    pesan,
+    sasaran,
+    daftarkan_sasaran,
+  };
 }

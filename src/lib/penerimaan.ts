@@ -56,6 +56,15 @@ export interface Gudang {
     alasan_eskalasi: string | null,
   ): Promise<void>;
   catat_luar_jam_dibalas(percakapan_id: string, waktu: string): Promise<void>;
+  /**
+   * Menghentikan semua sequence kampanye yang masih mengantre untuk kontak
+   * ini. Mengembalikan berapa yang dihentikan.
+   */
+  hentikan_kampanye(
+    tenant_id: string,
+    kontak_id: string,
+    alasan: string,
+  ): Promise<number>;
 }
 
 export type HasilTerima =
@@ -74,6 +83,8 @@ export type HasilTerima =
       opt_out: boolean;
       /** Teks yang harus dikirim balik, atau null kalau tidak perlu. */
       balasan_otomatis: string | null;
+      /** Berapa sequence kampanye yang berhenti karena balasan ini. */
+      kampanye_dihentikan: number;
     };
 
 function lewat_jeda(terakhir: string | null, sekarang: Date): boolean {
@@ -133,6 +144,11 @@ export async function terima_pesan(
   if (minta_berhenti(pesan.isi)) {
     await gudang.tandai_opt_out(kontak.id, sekarang.toISOString());
     await gudang.ubah_status_percakapan(percakapan.id, "selesai", null);
+    const dihentikan = await gudang.hentikan_kampanye(
+      tenant.tenant_id,
+      kontak.id,
+      "Kontak minta berhenti dihubungi",
+    );
     return {
       jenis: "tersimpan",
       pesan_id,
@@ -144,8 +160,18 @@ export async function terima_pesan(
       alasan_eskalasi: null,
       opt_out: true,
       balasan_otomatis: null,
+      kampanye_dihentikan: dihentikan,
     };
   }
+
+  // Kontak yang membalas berarti percakapannya sudah dimulai. Meneruskan
+  // follow-up terjadwal setelah itu membuat bisnisnya terlihat tidak membaca
+  // chat sendiri, dan itu persis yang bikin orang menekan tombol lapor.
+  const kampanye_dihentikan = await gudang.hentikan_kampanye(
+    tenant.tenant_id,
+    kontak.id,
+    "Kontak membalas",
+  );
 
   const eskalasi = perlu_eskalasi(pesan.isi);
   let status: StatusPercakapan = percakapan.status === "selesai" ? "ai" : percakapan.status;
@@ -191,5 +217,6 @@ export async function terima_pesan(
     alasan_eskalasi: alasan,
     opt_out: false,
     balasan_otomatis: balasan,
+    kampanye_dihentikan,
   };
 }

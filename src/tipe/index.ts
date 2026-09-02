@@ -9,7 +9,7 @@ export type StatusPercakapan = "ai" | "manual" | "selesai";
 
 export type ArahPesan = "masuk" | "keluar";
 
-export type PengirimPesan = "kontak" | "ai" | "manusia";
+export type PengirimPesan = "kontak" | "ai" | "manusia" | "kampanye";
 
 export type StatusKirim = "antre" | "terkirim" | "sampai" | "dibaca" | "gagal";
 
@@ -60,4 +60,54 @@ export interface ButirPengetahuan {
   isi: string;
   harga: number | null;
   aktif: boolean;
+}
+
+export type StatusKampanye =
+  | "draf"
+  | "jalan"
+  | "jeda"
+  | "selesai"
+  | "dihentikan";
+
+export type StatusSasaran = "antre" | "selesai" | "berhenti" | "gagal";
+
+export interface LangkahKampanye {
+  id: string;
+  urutan: number;
+  tunda_hari: number;
+  varian: string[];
+}
+
+export interface Kampanye {
+  id: string;
+  nama: string;
+  status: StatusKampanye;
+  saringan_tag: string[];
+  jeda_min_detik: number;
+  jeda_maks_detik: number;
+  batas_harian_awal: number;
+  batas_harian_maks: number;
+  rem_min_terkirim: number;
+  rem_rasio_balas: number;
+  rem_alasan: string | null;
+  mulai_at: string | null;
+  boleh_kirim_lagi_at: string | null;
+  dibuat_at: string;
+  langkah: LangkahKampanye[];
+}
+
+/** Hitungan mentah satu kampanye, dari fungsi keadaan_kampanye di database. */
+export interface AngkaKampanye {
+  sasaran_total: number;
+  antre: number;
+  selesai: number;
+  berhenti: number;
+  gagal: number;
+  dibalas: number;
+  tersentuh: number;
+  pesan_terkirim: number;
+  terkirim_hari_ini: number;
+  kuota_terpakai_hari_ini: number;
+  kuota_harian: number;
+  hari_ke: number;
 }

@@ -236,3 +236,67 @@ test("pesan tanpa id gateway tetap tersimpan, tidak dianggap dobel", async () =>
   }
   assert.equal(tersimpan.length, 2);
 });
+
+// ---------- Kampanye berhenti begitu kontak membalas ----------
+
+test("balasan kontak menghentikan sequence kampanye yang mengantre", async () => {
+  const { gudang, rahasia_benar, daftarkan_sasaran, sasaran } = gudang_memori();
+
+  // Kontak dibuat lebih dulu lewat satu pesan, lalu didaftarkan ke kampanye.
+  await terima_pesan(gudang, {
+    rahasia: rahasia_benar,
+    pesan: pesan({ wa_message_id: "wa-awal" }),
+    sekarang: SIANG,
+  });
+  daftarkan_sasaran("kontak-1", 2);
+
+  const hasil = await terima_pesan(gudang, {
+    rahasia: rahasia_benar,
+    pesan: pesan({ isi: "Oh boleh, minta detailnya dong", wa_message_id: "wa-2" }),
+    sekarang: SIANG,
+  });
+
+  assert.equal(hasil.jenis, "tersimpan");
+  if (hasil.jenis !== "tersimpan") return;
+  assert.equal(hasil.kampanye_dihentikan, 2);
+  assert.equal(sasaran.get("kontak-1")?.antre, 0);
+  assert.equal(sasaran.get("kontak-1")?.alasan, "Kontak membalas");
+});
+
+test("permintaan berhenti mencatat alasan yang berbeda dari sekadar membalas", async () => {
+  // Bedanya penting saat menilai kampanye. Kontak yang membalas itu hasil
+  // bagus, kontak yang minta berhenti itu hasil buruk, dan keduanya
+  // sama-sama membuat sequence berhenti.
+  const { gudang, rahasia_benar, daftarkan_sasaran, sasaran } = gudang_memori();
+
+  await terima_pesan(gudang, {
+    rahasia: rahasia_benar,
+    pesan: pesan({ wa_message_id: "wa-awal" }),
+    sekarang: SIANG,
+  });
+  daftarkan_sasaran("kontak-1", 3);
+
+  const hasil = await terima_pesan(gudang, {
+    rahasia: rahasia_benar,
+    pesan: pesan({ isi: "STOP", wa_message_id: "wa-stop" }),
+    sekarang: SIANG,
+  });
+
+  assert.equal(hasil.jenis, "tersimpan");
+  if (hasil.jenis !== "tersimpan") return;
+  assert.equal(hasil.opt_out, true);
+  assert.equal(hasil.kampanye_dihentikan, 3);
+  assert.equal(sasaran.get("kontak-1")?.alasan, "Kontak minta berhenti dihubungi");
+});
+
+test("kontak tanpa kampanye apa pun tidak terganggu", async () => {
+  const { gudang, rahasia_benar } = gudang_memori();
+  const hasil = await terima_pesan(gudang, {
+    rahasia: rahasia_benar,
+    pesan: pesan(),
+    sekarang: SIANG,
+  });
+  assert.equal(hasil.jenis, "tersimpan");
+  if (hasil.jenis !== "tersimpan") return;
+  assert.equal(hasil.kampanye_dihentikan, 0);
+});

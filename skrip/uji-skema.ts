@@ -66,10 +66,18 @@ async function main() {
     `select tablename as n from pg_tables where schemaname = 'public' order by 1`,
   );
   const namaTabel = tabel.rows.map((r) => r.n);
+  // Disebut satu per satu, bukan dihitung. Hitungan yang cocok tidak
+  // membuktikan tabel yang benar terbentuk, cuma membuktikan jumlahnya sama.
+  const DIHARAPKAN = [
+    "jalan_ai", "kampanye", "kontak", "langkah_kampanye", "log_audit",
+    "pengaturan_tenant", "pengetahuan", "pengguna", "percakapan", "pesan",
+    "sasaran_kampanye", "tenants",
+  ];
+  const kurang = DIHARAPKAN.filter((t) => !namaTabel.includes(t));
   periksa(
-    "sembilan tabel terbentuk",
-    namaTabel.length === 9,
-    `yang ada: ${namaTabel.join(", ")}`,
+    "semua tabel terbentuk",
+    kurang.length === 0 && namaTabel.length === DIHARAPKAN.length,
+    `kurang: ${kurang.join(", ") || "tidak ada"}, yang ada: ${namaTabel.join(", ")}`,
   );
 
   const tanpaRls = await db.query<{ n: string }>(

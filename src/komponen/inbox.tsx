@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Bot, Check, Search, Send, Trash2, TriangleAlert, User } from "lucide-react";
+import { Bot, Check, Megaphone, Search, Send, Trash2, TriangleAlert, User } from "lucide-react";
 import {
   buang_draf,
   kirim_balasan,
@@ -281,7 +281,11 @@ export function Inbox({
                     </span>
                   </div>
                   <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-redup">
-                    {terakhir?.pengirim === "ai" ? "AI: " : ""}
+                    {terakhir?.pengirim === "ai"
+                      ? "AI: "
+                      : terakhir?.pengirim === "kampanye"
+                        ? "Kampanye: "
+                        : ""}
                     {terakhir?.isi}
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -366,13 +370,17 @@ export function Inbox({
                         <Bot className="size-3.5 text-aksen-tinta" />
                       ) : m.pengirim === "manusia" ? (
                         <User className="size-3.5 text-sekunder-tinta" />
+                      ) : m.pengirim === "kampanye" ? (
+                        <Megaphone className="size-3.5 text-sekunder-tinta" />
                       ) : null}
                       <span className="pixel-sm uppercase text-redup">
                         {m.pengirim === "ai"
                           ? "Reflows AI"
                           : m.pengirim === "manusia"
                             ? "Kamu"
-                            : "Kontak"}
+                            : m.pengirim === "kampanye"
+                              ? "Kampanye"
+                              : "Kontak"}
                       </span>
                       <span className="angka text-xs text-redup">
                         {jam(m.waktu)}
