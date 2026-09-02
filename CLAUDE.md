@@ -62,6 +62,7 @@ src/app/masuk/        Halaman login
 src/komponen/ui/      Komponen pixel: tombol, kartu, tabel, lencana, grafik
 src/komponen/shell/   Bilah sisi, bilah atas, tombol tema
 src/lib/ai/           Peta kemampuan model, penyusun instruksi, mesin balasan
+src/lib/kampanye/     Aturan anti-ban dan antrean kampanye keluar
 src/lib/gateway/      Adapter WhatsApp: jenis, nomor, fonnte, mock
 src/lib/impor/        Impor materi dari PDF, web, dan spreadsheet
 src/lib/data/         Pembacaan data lewat sesi pengguna (kena RLS)
@@ -109,15 +110,21 @@ itu dalam satu deretan hanya boleh ada satu warna alarm.
 
 ## Model data
 
-Sembilan tabel, semuanya membawa `tenant_id` dan dijaga RLS:
+Dua belas tabel, semuanya membawa `tenant_id` dan dijaga RLS:
 `tenants`, `pengguna`, `pengaturan_tenant`, `pengetahuan`, `kontak`,
-`percakapan`, `pesan`, `jalan_ai`, `log_audit`.
+`percakapan`, `pesan`, `jalan_ai`, `log_audit`, `kampanye`,
+`langkah_kampanye`, `sasaran_kampanye`.
 
-Dua fungsi menghitung angka layar di dalam database dan mengembalikan satu
-jsonb: `ringkasan_dasbor()` dan `penggunaan_ai()`. Keduanya `security
-invoker`, jadi RLS tetap yang menyaring tenant. Kalau salah satu dijadikan
-`security definer`, angka semua pelanggan bocor, dan `npm test` memang
-menangkapnya.
+Tiga fungsi menghitung angka layar di dalam database dan mengembalikan satu
+jsonb: `ringkasan_dasbor()`, `penggunaan_ai()`, dan `keadaan_kampanye()`.
+Semuanya `security invoker`, jadi RLS tetap yang menyaring tenant. Kalau
+salah satu dijadikan `security definer`, angka semua pelanggan bocor, dan
+`npm test` memang menangkapnya.
+
+Dua fungsi lain khusus jalur service role dan haknya dicabut dari
+`authenticated`: `klaim_sasaran()` yang mengunci satu sasaran kampanye
+dengan `for update skip locked`, dan `hentikan_sasaran_kontak()` yang
+dipanggil webhook saat kontak membalas.
 
 Kebijakan RLS bertumpu pada `public.tenant_saya()` yang `SECURITY DEFINER`,
 supaya pembacaan tabel `pengguna` di dalamnya tidak ikut kena RLS.
@@ -212,6 +219,18 @@ Dicatat supaya tidak terulang.
 13. **`to_char` di Postgres selalu memberi nama hari Inggris**, tidak peduli
     locale server. Diterjemahkan di aplikasi, bukan dengan menggeser
     `lc_time` yang berlaku untuk seluruh project.
+14. **Jalur API baru harus didaftarkan di `TERBUKA` milik `src/proxy.ts`.**
+    Middleware mengalihkan semua yang belum terdaftar ke halaman masuk, dan
+    pemanggil tanpa sesi seperti pg_cron cuma menerima 307 tanpa penjelasan.
+    Antrean kampanye diam total sampai ini ketahuan, dan cuma kelihatan saat
+    jalurnya dicoba di produksi.
+15. **Nilai enum baru tidak boleh dipakai di migrasi yang sama dengan
+    penambahannya.** PostgreSQL menolak dengan galat 55P04, dan badan fungsi
+    SQL ikut diperiksa saat dibuat. Pisahkan jadi dua berkas migrasi.
+16. **Peran `postgres` di Supabase bukan superuser**, jadi
+    `alter database ... set` ditolak. Rahasia yang dibutuhkan pg_cron
+    disimpan di Supabase Vault, lalu dibaca lewat `vault.decrypted_secrets`
+    di dalam definisi jadwalnya.
 
 ---
 
@@ -222,7 +241,7 @@ Dicatat supaya tidak terulang.
 | 0 | Fondasi, skema, RLS, design system dua tema | Selesai |
 | 1 | Gateway, webhook, autentikasi, inbox, kirim manual | Selesai |
 | 2 | Mesin balasan AI, impor materi, eskalasi | Selesai |
-| 3 | Kampanye keluar, sequence, anti-ban | Belum |
+| 3 | Kampanye keluar, sequence, anti-ban | Selesai |
 | 4 | Invoice PDF dan pengirimannya lewat WhatsApp | Belum |
 | 5 | Dasbor pemilik platform, monitoring lintas tenant, billing | Belum |
 
@@ -231,10 +250,14 @@ Dicatat supaya tidak terulang.
 Pesan WhatsApp masuk lewat Fonnte, AI menyusun balasan dari materi admin,
 lalu mengirimkannya kembali. Terbukti dengan chat sungguhan.
 
-Dasbor, Percakapan, Kontak, Pengetahuan, dan Penggunaan semuanya membaca
-data sungguhan. Tidak ada lagi layar yang menampilkan angka karangan.
-Percakapan dan dasbor menyegar sendiri lewat `router.refresh()` berkala,
-yang berhenti saat tab tidak terlihat.
+Dasbor, Percakapan, Kontak, Pengetahuan, Penggunaan, dan Kampanye semuanya
+membaca data sungguhan. Tidak ada lagi layar yang menampilkan angka
+karangan. Percakapan, dasbor, dan kampanye yang sedang jalan menyegar
+sendiri lewat `router.refresh()` berkala, yang berhenti saat tab tidak
+terlihat.
+
+Antrean kampanye dipanggil pg_cron di Supabase setiap menit, dan terbukti
+dijawab 200 lewat `npm run periksa-cron`.
 
 Urutan keputusan mesin balasan:
 
@@ -264,15 +287,14 @@ bertambah.
 
 ## Yang perlu diputuskan berikutnya
 
-- **Fase 3 anti-ban**: warm-up bertahap, jeda acak 40 sampai 120 detik,
-  variasi kalimat, berhenti sendiri saat kontak membalas, rem otomatis kalau
-  rasio balasan anjlok. Antreannya butuh cron per menit, dan Vercel Hobby
-  cuma sekali sehari. Rencana: pg_cron di Supabase memanggil Edge Function.
 - **Watermark Fonnte**: paket selain Master dan Ultra menempelkan "Sent via
   fonnte.com" di setiap pesan. Ini menyentuh cara menjual Reflows, bukan
   cuma tampilan.
 - **Hak super admin** perlu diperketat sebelum ada tenant kedua.
 - **Site URL Supabase** sudah diganti ke domain produksi.
+- **Fase 3 sudah jalan**, tapi belum pernah dipakai ke kontak sungguhan.
+  Kampanye pertama sebaiknya kecil dulu, sepuluh sampai dua puluh kontak,
+  dan hasilnya diperiksa sebelum daftar besar dimasukkan.
 - **Paket langganan** sudah dihitung, ada di `docs/keputusan-produk.md`.
   Mulai Rp 349.000, Tumbuh Rp 749.000, Penuh Rp 1.490.000. Yang belum ada:
   penghitung balasan bulanan dan remnya, tanpa itu kuota cuma janji.
@@ -291,6 +313,9 @@ bertambah.
 | `npm run periksa:produksi` | Memeriksa database Supabase sungguhan |
 | `npm run uji-webhook` | Uji jalur webhook ujung ke ujung |
 | `npm run uji-auth` | Uji sesi dan isolasi antar tenant |
+| `npm run uji-kampanye` | Uji antrean kampanye ujung ke ujung |
+| `npm run pasang-cron` | Memasang penjadwal antrean di Supabase |
+| `npm run periksa-cron` | Memeriksa apakah cron benar-benar memanggil |
 | `npm run deploy` | Deploy ke produksi |
 | `npm run db:push` | Memasang migrasi ke Supabase |
 | `npm run siapkan-tenant` | Mengisi tenant dan materi adminnya |

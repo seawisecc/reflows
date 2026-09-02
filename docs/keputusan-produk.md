@@ -37,9 +37,19 @@ Dibangun untuk kebutuhan Seawise Studio dulu, lalu dijual sebagai langganan.
   template promosi ke kontak dingin biasanya ditolak. Itu mematikan use case
   berburu client.
 - **Tidak memakai Vercel Cron untuk antrean outbound.** Di plan Hobby cron
-  hanya jalan sekali sehari. Antrean akan memakai pg_cron di Supabase yang
-  memanggil Edge Function, jadi tidak terikat plan Vercel dan tidak kena
-  batas waktu eksekusi.
+  hanya jalan sekali sehari. Antrean memakai pg_cron di Supabase, jadi tidak
+  terikat plan Vercel dan tidak ikut mati kalau paketnya berubah.
+
+  Rencana awalnya pg_cron memanggil Edge Function. Yang dipasang akhirnya
+  pg_cron memanggil jalur Next.js biasa, `POST /api/kampanye/jalan`.
+  Alasannya: aturan anti-ban, adapter gateway, dan normalisasi nomor sudah
+  ditulis sekali di `src/lib`. Menyalinnya ke Deno berarti suatu saat dua
+  salinan itu berbeda, dan yang berbeda adalah remnya.
+
+  Jalur itu dijaga rahasia 64 karakter di header, dibandingkan dengan
+  `timingSafeEqual`. Rahasianya disimpan di Supabase Vault, bukan tertulis
+  di dalam definisi jadwal, karena isi `cron.job` bisa dibaca siapa pun yang
+  punya akses baca ke database.
 
 ## Aturan eskalasi
 
@@ -219,3 +229,42 @@ ikut menanggung pekerjaan mengurus akun gateway orang lain.
 Semuanya Fase 5: mengganti enum `paket_langganan`, penghitung balasan
 bulanan beserta remnya, layar tagihan untuk tenant, dasbor pemilik platform,
 dan akun administrasi platform yang terpisah dari akun harian.
+
+## Anti-ban yang benar-benar dipasang di Fase 3
+
+Angkanya, beserta alasannya. Semuanya fungsi murni di
+`src/lib/kampanye/antiban.ts` dan dipakai dua tempat sekaligus: antrean yang
+mengirim, dan layar yang menjelaskan kenapa kampanye sedang diam. Kalau
+keduanya menghitung sendiri-sendiri, suatu saat layar bilang "mengirim"
+sementara antreannya sudah berhenti berjam-jam.
+
+| Rem | Angka | Kenapa begitu |
+|---|---|---|
+| Warm-up | 20 pesan hari pertama, naik 30 persen sehari, mentok 150 di hari kesembilan | Nomor baru yang langsung mengirim ratusan pesan adalah cara tercepat kena blokir |
+| Jeda antar pesan | Acak 40 sampai 120 detik | Interval tetap adalah pola paling gampang dikenali sebagai robot |
+| Variasi kalimat | Beberapa varian per langkah, dipilih dari sidik jari sasaran | Bukan diacak, supaya satu sasaran selalu menerima varian yang sama kalau pengirimannya diulang |
+| Berhenti saat membalas | Langsung, lewat webhook | Meneruskan follow-up terjadwal setelah orangnya membalas membuat bisnisnya terlihat tidak membaca chat sendiri |
+| Rem otomatis | Rasio balasan di bawah 5 persen setelah 30 kontak tersentuh | Rasio yang anjlok berarti daftarnya salah atau pesannya tidak nyambung, dan meneruskannya mempercepat blokir |
+| Kuota nomor | Dibagi bersama balasan AI | Kampanye tidak boleh menghabiskan jatah sampai chat client tidak bisa dibalas |
+
+Penyebut rasio balasan sengaja sasaran yang sudah tersentuh, bukan seluruh
+daftar. Kalau seluruh daftar yang dipakai, rasionya nol di awal dan rem
+menyala sebelum satu pesan pun sempat dibalas.
+
+Satu putaran antrean mengirim paling banyak satu pesan per kampanye.
+Terlihat lambat dan memang disengaja: yang menentukan kecepatan adalah jeda
+acak, bukan seberapa rajin cron dipanggil. Mengirim berkelompok dalam satu
+putaran menghasilkan letupan yang persis seperti robot.
+
+Klaim sasaran memakai `for update skip locked` dan menggeser jadwalnya lima
+menit ke depan. Dua hal sekaligus: putaran cron yang tumpang tindih tidak
+mengirimi orang yang sama dua kali, dan pengiriman yang gagal di tengah
+jalan kembali sendiri ke antrean alih-alih hilang.
+
+### Yang membedakan berhenti dan minta berhenti
+
+Keduanya menghentikan sequence, tapi dicatat dengan alasan berbeda. Kontak
+yang membalas itu hasil bagus, percakapannya pindah ke inbox. Kontak yang
+membalas STOP itu hasil buruk, dan dia tidak akan pernah masuk kampanye mana
+pun lagi. Kalau alasannya disamakan, tidak ada cara menilai kampanye mana
+yang berhasil dan mana yang mengganggu orang.

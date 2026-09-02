@@ -29,6 +29,7 @@ function muat_env(berkas = ".env.local"): Record<string, string> {
 }
 
 const NAMA_JADWAL = "reflows-antrean-kampanye";
+const NAMA_RAHASIA = "reflows_rahasia_cron";
 
 /** Menutupi rahasia di keluaran layar, karena skrip ini sering di-screenshot. */
 function samar(nilai: string): string {
@@ -92,13 +93,20 @@ async function main() {
 
   // Rahasia cron tidak boleh ikut tertulis di dalam definisi jadwal, karena
   // isi cron.job bisa dibaca siapa pun yang punya akses baca ke database.
-  // Disimpan sekali sebagai pengaturan database, lalu dibaca saat jalan.
-  console.log("Menyimpan rahasia sebagai pengaturan database");
+  //
+  // Disimpan di Supabase Vault, bukan sebagai pengaturan database. Peran
+  // postgres di Supabase bukan superuser, jadi ALTER DATABASE SET ditolak.
+  // Vault memang tempatnya, dan isinya tersandi di penyimpanan.
+  console.log("Menyimpan rahasia di Supabase Vault");
   await jalankan_sql(
     ref,
     token,
-    `alter database postgres set app.rahasia_cron = '${rahasia.replace(/'/g, "''")}';
-     alter database postgres set app.jalur_antrean = '${jalur.replace(/'/g, "''")}';`,
+    `delete from vault.secrets where name = '${NAMA_RAHASIA}';
+     select vault.create_secret(
+       '${rahasia.replace(/'/g, "''")}',
+       '${NAMA_RAHASIA}',
+       'Header penjaga jalur antrean kampanye Reflows'
+     );`,
   );
 
   console.log("Mencabut jadwal lama kalau ada");
@@ -118,10 +126,13 @@ async function main() {
        '* * * * *',
        $cron$
        select net.http_post(
-         url := current_setting('app.jalur_antrean'),
+         url := '${jalur}',
          headers := jsonb_build_object(
            'Content-Type', 'application/json',
-           'x-rahasia-cron', current_setting('app.rahasia_cron')
+           'x-rahasia-cron', (
+             select decrypted_secret from vault.decrypted_secrets
+              where name = '${NAMA_RAHASIA}'
+           )
          ),
          body := '{}'::jsonb,
          timeout_milliseconds := 30000
