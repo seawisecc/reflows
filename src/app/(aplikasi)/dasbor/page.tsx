@@ -12,6 +12,8 @@ import Link from "next/link";
 import { BilahAtas } from "@/komponen/shell/bilah-atas";
 import { Penyegar } from "@/komponen/penyegar";
 import { SpandukLayanan } from "@/komponen/spanduk-layanan";
+import { SpandukKuota } from "@/komponen/spanduk-kuota";
+import { ambil_kuota } from "@/lib/data/kuota";
 import { Kartu, KepalaKartu } from "@/komponen/ui/kartu";
 import { KartuStatistik, BarBlok } from "@/komponen/ui/statistik";
 import { Lencana, TitikStatus } from "@/komponen/ui/lencana";
@@ -41,10 +43,13 @@ function lama(detik: number): { nilai: string; satuan: string } {
 
 export default async function Dasbor() {
   const pengaturan = await pengaturan_ringkas();
-  const [{ daftar, sumber }, hitungan] = await Promise.all([
+  const [{ daftar, sumber }, hitungan, kuota_ai] = await Promise.all([
     ambil_percakapan(),
     ambil_ringkasan_nyata(pengaturan?.zona_waktu ?? "Asia/Makassar"),
+    ambil_kuota(),
   ]);
+  // Sengaja dinamai kuota_ai. Di halaman ini sudah ada "kuota" lain, yaitu
+  // batas kirim harian nomornya, dan keduanya mudah tertukar.
 
   // Angka nyata kalau database tersambung, angka contoh kalau belum.
   // Sengaja tidak dicampur, supaya tidak ada layar yang setengah nyata.
@@ -86,6 +91,7 @@ export default async function Dasbor() {
 
       <main className="space-y-6 p-4 sm:p-6">
         {pengaturan ? <SpandukLayanan izin={pengaturan.izin} /> : null}
+        {kuota_ai ? <SpandukKuota kuota={kuota_ai} /> : null}
 
         <section
           aria-label="Angka utama"

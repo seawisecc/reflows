@@ -9,6 +9,8 @@ import { FormulirPengaturan } from "./formulir";
 import { PanelQr } from "./panel-qr";
 import { SaklarLayanan } from "./saklar";
 import { FormulirInvoice } from "./formulir-invoice";
+import { BatasKuota } from "./batas-kuota";
+import { ambil_kuota } from "@/lib/data/kuota";
 import { UrlWebhook } from "./salin";
 
 export const metadata = { title: "Pengaturan | Reflows" };
@@ -33,9 +35,10 @@ async function asal(): Promise<string> {
 }
 
 export default async function HalamanPengaturan() {
-  const [pengaturan, invoice] = await Promise.all([
+  const [pengaturan, invoice, kuota] = await Promise.all([
     ambil_pengaturan(await asal()),
     ambil_pengaturan_invoice(),
+    ambil_kuota(),
   ]);
 
   return (
@@ -59,6 +62,8 @@ export default async function HalamanPengaturan() {
               dijeda_at={pengaturan.dijeda_at}
               alasan_jeda={pengaturan.alasan_jeda}
             />
+
+            {kuota ? <BatasKuota kuota={kuota} /> : null}
 
             <FormulirPengaturan awal={pengaturan} />
 

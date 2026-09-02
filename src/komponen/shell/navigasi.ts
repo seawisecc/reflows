@@ -7,6 +7,7 @@ import {
   Send,
   Settings,
   Users,
+  Building2,
 } from "lucide-react";
 
 export type ItemNav = {
@@ -37,5 +38,9 @@ export const NAVIGASI: GrupNav[] = [
       { href: "/pengaturan", label: "Pengaturan", ikon: Settings },
       { href: "/penggunaan", label: "Penggunaan", ikon: Coins },
     ],
+  },
+  {
+    judul: "Platform",
+    item: [{ href: "/platform", label: "Semua tenant", ikon: Building2 }],
   },
 ];

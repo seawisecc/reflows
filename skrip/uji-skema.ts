@@ -472,6 +472,56 @@ async function main() {
     "row-level security",
   );
 
+  // Invoice uji dibuang lagi sebelum blok berikutnya. Kolom kontak_id-nya
+  // memakai on delete restrict, jadi kalau dibiarkan, penghapusan kontak di
+  // uji super admin akan meledak dengan galat foreign key sebelum sempat
+  // membuktikan apa pun soal RLS.
+  await db.exec(`reset role;`);
+  await db.exec(`delete from public.invoice where nomor = 'INV/9999/0001';`);
+
+  // ---- Super admin baca saja ----
+  // Sebelum diperketat, super admin bisa menghapus baris tenant mana pun
+  // lewat sesi browser biasa. Untuk pekerjaan dukungan itu terlalu longgar:
+  // satu salah klik menghapus seluruh riwayat percakapan pelanggan.
+  console.log("\nSuper admin baca saja");
+  await jadiPengguna("33333333-3333-3333-3333-333333333333");
+
+  const baca_lintas = await db.query(`select nomor_wa from public.kontak`);
+  periksa(
+    "super admin tetap bisa membaca lintas tenant",
+    baca_lintas.rows.length === 3,
+    `terlihat: ${baca_lintas.rows.length}`,
+  );
+
+  const hapus_lintas = await db.query(
+    `delete from public.kontak
+      where tenant_id = 'bbbbbbbb-0000-0000-0000-000000000002' returning id`,
+  );
+  periksa(
+    "super admin tidak bisa menghapus baris tenant lain",
+    hapus_lintas.rows.length === 0,
+    `terhapus: ${hapus_lintas.rows.length}`,
+  );
+
+  const ubah_lintas = await db.query(
+    `update public.kontak set nama = 'Diubah super admin'
+      where tenant_id = 'bbbbbbbb-0000-0000-0000-000000000002' returning id`,
+  );
+  periksa(
+    "super admin tidak bisa mengubah baris tenant lain",
+    ubah_lintas.rows.length === 0,
+    `terubah: ${ubah_lintas.rows.length}`,
+  );
+
+  const hapus_sendiri = await db.query(
+    `delete from public.kontak where nomor_wa = '628111000002' returning id`,
+  );
+  periksa(
+    "super admin tetap bisa mengurus tenantnya sendiri",
+    hapus_sendiri.rows.length === 1,
+    `terhapus: ${hapus_sendiri.rows.length}`,
+  );
+
   console.log("\nHak service_role");
   await db.exec(`reset role;`);
   await db.exec(`set role service_role;`);

@@ -10,6 +10,11 @@ export type ProfilPengguna = {
   email: string;
   peran: PeranPengguna;
   tenant_nama: string;
+  /**
+   * Membuka pembacaan lintas tenant. Sengaja terpisah dari peran: peran
+   * berlaku di dalam satu tenant, ini berlaku di seluruh platform.
+   */
+  super_admin: boolean;
 };
 
 /**
@@ -26,7 +31,7 @@ export const profil_saya = cache(async function profil_saya(): Promise<ProfilPen
 
   const { data } = await db
     .from("pengguna")
-    .select("id, nama, email, peran, tenants:tenant_id ( nama )")
+    .select("id, nama, email, peran, super_admin, tenants:tenant_id ( nama )")
     .eq("id", id)
     .maybeSingle();
 
@@ -39,5 +44,6 @@ export const profil_saya = cache(async function profil_saya(): Promise<ProfilPen
     email: data.email as string,
     peran: data.peran as PeranPengguna,
     tenant_nama: tenant?.nama ?? "Bisnis kamu",
+    super_admin: data.super_admin === true,
   };
 });

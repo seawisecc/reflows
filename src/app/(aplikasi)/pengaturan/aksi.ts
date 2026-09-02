@@ -300,3 +300,39 @@ export async function simpan_pengaturan_invoice(
     pesan: "Identitas invoice tersimpan. Invoice yang sudah terbit tidak ikut berubah.",
   };
 }
+
+/**
+ * Batas kelebihan kuota, dipegang tenant sendiri.
+ *
+ * Kosong berarti tanpa batas: AI terus membalas dan kelebihannya ditagih.
+ * Nol berarti AI berhenti tepat saat kuota habis. Keduanya pilihan yang sah,
+ * dan yang tidak sah adalah memilihkannya diam-diam untuk tenant.
+ */
+export async function simpan_batas_kelebihan(
+  mentah: string,
+): Promise<{ galat: string | null }> {
+  const tenant_id = await tenant_saya();
+  if (!tenant_id) return { galat: "Sesi kamu sudah habis. Masuk lagi ya." };
+
+  const bersih = mentah.trim();
+  let nilai: number | null = null;
+  if (bersih !== "") {
+    const n = Number(bersih.replace(/[^\d]/g, ""));
+    if (!Number.isFinite(n) || n < 0 || n > 100_000) {
+      return { galat: "Batas kelebihan harus angka antara 0 dan 100.000." };
+    }
+    nilai = Math.floor(n);
+  }
+
+  const db = await klien_server();
+  const { error } = await db
+    .from("pengaturan_tenant")
+    .update({ batas_kelebihan: nilai })
+    .eq("tenant_id", tenant_id);
+  if (error) return { galat: `Gagal menyimpan: ${error.message}` };
+
+  revalidatePath("/pengaturan");
+  revalidatePath("/penggunaan");
+  revalidatePath("/dasbor");
+  return { galat: null };
+}

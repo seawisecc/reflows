@@ -4,6 +4,7 @@ import { susun_instruksi } from "./ai/instruksi";
 import { susun_balasan, type Jejak } from "./ai/balas";
 import { catat_pesan_keluar, kredensial_gateway } from "./gudang-supabase";
 import { pilih_gateway } from "./gateway";
+import { izin_kuota, paket_sah, type NamaPaket } from "./paket";
 import type { ButirPengetahuan, ModeBalas, Pesan } from "@/tipe";
 
 /**
@@ -20,6 +21,36 @@ export type HasilBalasOtomatis = {
   tindakan: "kirim" | "draf" | "eskalasi" | "lewat";
   alasan: string | null;
 };
+
+/**
+ * Sisa kuota balasan AI bulan ini.
+ *
+ * Diperiksa sebelum model dipanggil, bukan sesudah. Memanggil model lalu
+ * membuang hasilnya tetap dibayar, dan itu persis biaya yang kuotanya
+ * seharusnya cegah.
+ */
+async function boleh_pakai_kuota(
+  db: SupabaseClient,
+  tenant_id: string,
+): Promise<{ boleh: boolean; sebab: string | null }> {
+  const { data } = await db.rpc("kuota_bulan_ini", { p_tenant_id: tenant_id });
+  if (!data) return { boleh: true, sebab: null };
+
+  const m = data as unknown as Record<string, unknown>;
+  const paket = m.paket;
+  // Paket yang tidak dikenali tidak boleh menghentikan balasan. Kesalahan
+  // konfigurasi kita tidak boleh berujung client tenant tidak dibalas.
+  if (!paket_sah(paket)) return { boleh: true, sebab: null };
+
+  const batas = m.batas_kelebihan;
+  const izin = izin_kuota({
+    paket: paket as NamaPaket,
+    terpakai: Number(m.terpakai ?? 0),
+    batas_kelebihan:
+      batas === null || batas === undefined ? null : Number(batas),
+  });
+  return { boleh: izin.boleh, sebab: izin.sebab };
+}
 
 async function catat_jejak(
   db: SupabaseClient,
@@ -55,6 +86,17 @@ export async function balas_otomatis(
     ambang_keyakinan: number;
   },
 ): Promise<HasilBalasOtomatis> {
+  const kuota = await boleh_pakai_kuota(db, masukan.tenant_id);
+  if (!kuota.boleh) {
+    // Dilempar ke manusia dengan alasan yang jelas, bukan didiamkan.
+    // Percakapan yang berhenti tanpa penjelasan terlihat seperti kerusakan.
+    await db
+      .from("percakapan")
+      .update({ status: "manual", alasan_eskalasi: kuota.sebab })
+      .eq("id", masukan.percakapan_id);
+    return { tindakan: "eskalasi", alasan: kuota.sebab };
+  }
+
   const [{ data: tenant }, { data: materi }, { data: riwayat }] = await Promise.all([
     db.from("tenants").select("nama").eq("id", masukan.tenant_id).maybeSingle(),
     db
