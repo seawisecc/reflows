@@ -300,3 +300,82 @@ test("kontak tanpa kampanye apa pun tidak terganggu", async () => {
   if (hasil.jenis !== "tersimpan") return;
   assert.equal(hasil.kampanye_dihentikan, 0);
 });
+
+// ---------- Layanan dimatikan ----------
+
+const MATI = { ...TENANT_UJI, dijeda_at: "2026-08-01T00:00:00Z" };
+const DISUSPENSI = { ...TENANT_UJI, aktif: false };
+
+test("layanan dijeda tetap menyimpan pesan client", async () => {
+  // Ini pokoknya. Layanan yang mati boleh berhenti membalas, tapi tidak
+  // boleh membuang chat. Kalau dibuang, menyalakan lagi berarti pemiliknya
+  // kehilangan semua yang masuk selama mati.
+  const { gudang, rahasia_benar, pesan: tersimpan } = gudang_memori(MATI);
+  const hasil = await terima_pesan(gudang, {
+    rahasia: rahasia_benar,
+    pesan: pesan(),
+    sekarang: SIANG,
+  });
+
+  assert.equal(hasil.jenis, "tersimpan");
+  assert.equal(tersimpan.length, 1);
+  if (hasil.jenis !== "tersimpan") return;
+  assert.equal(hasil.izin.jenis, "dijeda");
+  assert.equal(hasil.izin.balas_ai, false);
+});
+
+test("layanan disuspensi juga tetap menyimpan pesan client", async () => {
+  const { gudang, rahasia_benar, pesan: tersimpan } = gudang_memori(DISUSPENSI);
+  const hasil = await terima_pesan(gudang, {
+    rahasia: rahasia_benar,
+    pesan: pesan(),
+    sekarang: SIANG,
+  });
+  assert.equal(tersimpan.length, 1);
+  if (hasil.jenis !== "tersimpan") return;
+  assert.equal(hasil.izin.jenis, "disuspensi");
+  assert.equal(hasil.izin.kirim_manual, false);
+});
+
+test("pemberitahuan di luar jam kerja tidak dikirim saat layanan dijeda", async () => {
+  const { gudang, rahasia_benar } = gudang_memori(MATI);
+  const hasil = await terima_pesan(gudang, {
+    rahasia: rahasia_benar,
+    pesan: pesan({ waktu: MALAM.toISOString() }),
+    sekarang: MALAM,
+  });
+  if (hasil.jenis !== "tersimpan") return assert.fail("harusnya tersimpan");
+  assert.equal(
+    hasil.balasan_otomatis,
+    null,
+    "layanan yang dijeda tidak boleh mengirim apa pun",
+  );
+});
+
+test("layanan yang menyala tetap mengirim pemberitahuan luar jam", async () => {
+  // Pasangan uji di atasnya. Tanpa ini, mematikan seluruh balasan luar jam
+  // secara tidak sengaja tidak akan ketahuan.
+  const { gudang, rahasia_benar } = gudang_memori();
+  const hasil = await terima_pesan(gudang, {
+    rahasia: rahasia_benar,
+    pesan: pesan({ waktu: MALAM.toISOString() }),
+    sekarang: MALAM,
+  });
+  if (hasil.jenis !== "tersimpan") return assert.fail("harusnya tersimpan");
+  assert.equal(hasil.balasan_otomatis, TENANT_UJI.pesan_di_luar_jam);
+});
+
+test("permintaan berhenti tetap dihormati walau layanan dijeda", async () => {
+  // Opt-out tidak boleh pernah ikut mati. Orang yang minta berhenti saat
+  // layanan sedang dijeda tetap harus tercatat, kalau tidak dia akan
+  // dikirimi kampanye lagi begitu layanannya dinyalakan.
+  const { gudang, rahasia_benar, kontak } = gudang_memori(MATI);
+  const hasil = await terima_pesan(gudang, {
+    rahasia: rahasia_benar,
+    pesan: pesan({ isi: "STOP" }),
+    sekarang: SIANG,
+  });
+  if (hasil.jenis !== "tersimpan") return assert.fail("harusnya tersimpan");
+  assert.equal(hasil.opt_out, true);
+  assert.equal([...kontak.values()][0]?.opt_out_at !== null, true);
+});

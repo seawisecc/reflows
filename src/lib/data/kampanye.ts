@@ -98,6 +98,26 @@ async function lengkapi(
   });
   const angka = data ? ke_angka(data) : ANGKA_KOSONG;
 
+  // Layanan yang mati diperiksa lebih dulu. Tanpa ini layar akan menulis
+  // "siap mengirim pada putaran berikutnya" untuk kampanye yang antreannya
+  // sudah dilewati sepenuhnya, dan itu kebohongan yang paling membingungkan.
+  if (pengaturan && !pengaturan.izin.kampanye) {
+    return {
+      ...k,
+      angka,
+      keputusan: {
+        kirim: false,
+        jenis: "status",
+        sebab: pengaturan.izin.sebab ?? "Layanan sedang mati.",
+        batas_hari_ini: batas_hari_ke(
+          k.batas_harian_awal,
+          k.batas_harian_maks,
+          angka.hari_ke,
+        ),
+      },
+    };
+  }
+
   return {
     ...k,
     angka,

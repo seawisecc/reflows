@@ -9,6 +9,7 @@ import {
   type SebabDiam,
 } from "./antiban";
 import { catat_pesan_keluar, kredensial_gateway } from "@/lib/gudang-supabase";
+import { izin_layanan } from "@/lib/layanan";
 import { pilih_gateway } from "@/lib/gateway";
 import type { AngkaKampanye, LangkahKampanye } from "@/tipe";
 
@@ -55,6 +56,8 @@ type BarisPengaturan = {
   jam_selesai: string;
   zona_waktu: string;
   kuota_pesan_harian: number;
+  aktif: boolean;
+  dijeda_at: string | null;
 };
 
 async function pengaturan_tenant(
@@ -64,10 +67,12 @@ async function pengaturan_tenant(
   const [{ data: p }, { data: t }] = await Promise.all([
     db
       .from("pengaturan_tenant")
-      .select("tenant_id, gateway, jam_mulai, jam_selesai, zona_waktu, kuota_pesan_harian")
+      .select(
+        "tenant_id, gateway, jam_mulai, jam_selesai, zona_waktu, kuota_pesan_harian, dijeda_at",
+      )
       .eq("tenant_id", tenant_id)
       .maybeSingle(),
-    db.from("tenants").select("nama").eq("id", tenant_id).maybeSingle(),
+    db.from("tenants").select("nama, aktif").eq("id", tenant_id).maybeSingle(),
   ]);
   if (!p) return null;
   return {
@@ -78,6 +83,10 @@ async function pengaturan_tenant(
     jam_selesai: String(p.jam_selesai ?? "").slice(0, 5),
     zona_waktu: p.zona_waktu as string,
     kuota_pesan_harian: Number(p.kuota_pesan_harian),
+    // Tenant yang barisnya hilang dianggap mati, bukan hidup. Kalau
+    // dibalik, kesalahan query justru membuat kampanye tetap mengirim.
+    aktif: t?.aktif === true,
+    dijeda_at: (p.dijeda_at as string | null) ?? null,
   };
 }
 
@@ -143,6 +152,18 @@ export async function jalankan_satu_kampanye(
 
   const pengaturan = await pengaturan_tenant(db, kam.tenant_id);
   if (!pengaturan) return diam("status", "Pengaturan tenant belum ada.");
+
+  // Diperiksa sebelum apa pun yang lain, bahkan sebelum rem otomatis.
+  // Layanan yang mati tidak boleh menyentuh gateway sama sekali, dan tidak
+  // boleh pula mengubah status kampanye: keadaannya harus persis seperti
+  // saat dimatikan begitu dinyalakan lagi.
+  const layanan = izin_layanan({
+    aktif: pengaturan.aktif,
+    dijeda_at: pengaturan.dijeda_at,
+  });
+  if (!layanan.kampanye) {
+    return diam("status", layanan.sebab ?? "Layanan tenant ini sedang mati.");
+  }
 
   const { data: mentah } = await db.rpc("keadaan_kampanye", {
     p_kampanye_id: kam.id,

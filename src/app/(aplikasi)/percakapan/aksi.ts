@@ -5,6 +5,7 @@ import { klien_server } from "@/lib/supabase/server";
 import { klien_layanan } from "@/lib/supabase/layanan";
 import { catat_pesan_keluar, kredensial_gateway } from "@/lib/gudang-supabase";
 import { pilih_gateway } from "@/lib/gateway";
+import { pengaturan_ringkas } from "@/lib/data/pengaturan";
 import type { StatusPercakapan } from "@/tipe";
 
 export type KeadaanKirim = {
@@ -70,6 +71,14 @@ export async function kirim_balasan(
       galat: "Kontak ini sudah minta berhenti dihubungi.",
       terkirim: false,
     };
+  }
+
+  // Layanan yang disuspensi menutup jalur ini juga. Jeda yang dipasang
+  // sendiri tidak, karena yang menjeda biasanya justru mau memegang chatnya
+  // sendiri dulu.
+  const pengaturan = await pengaturan_ringkas();
+  if (pengaturan && !pengaturan.izin.kirim_manual) {
+    return { galat: pengaturan.izin.sebab, terkirim: false };
   }
 
   const layanan = klien_layanan();
@@ -166,6 +175,14 @@ export async function setujui_draf(
   if (!percakapan) return { galat: "Percakapan tidak ditemukan." };
   if (percakapan.opt_out_at) {
     return { galat: "Kontak ini sudah minta berhenti dihubungi." };
+  }
+
+  // Menyetujui draf sama saja mengirim pesan, jadi gerbangnya sama dengan
+  // tombol kirim biasa. Drafnya sendiri tetap tersimpan, jadi tinggal
+  // disetujui lagi begitu layanan menyala.
+  const pengaturan = await pengaturan_ringkas();
+  if (pengaturan && !pengaturan.izin.kirim_manual) {
+    return { galat: pengaturan.izin.sebab };
   }
 
   const layanan = klien_layanan();

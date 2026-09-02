@@ -7,6 +7,7 @@ import { Lencana } from "@/komponen/ui/lencana";
 import { ambil_pengaturan } from "@/lib/data/pengaturan";
 import { FormulirPengaturan } from "./formulir";
 import { PanelQr } from "./panel-qr";
+import { SaklarLayanan } from "./saklar";
 import { UrlWebhook } from "./salin";
 
 export const metadata = { title: "Pengaturan | Reflows" };
@@ -49,6 +50,12 @@ export default async function HalamanPengaturan() {
           </Kartu>
         ) : (
           <>
+            <SaklarLayanan
+              izin={pengaturan.izin}
+              dijeda_at={pengaturan.dijeda_at}
+              alasan_jeda={pengaturan.alasan_jeda}
+            />
+
             <FormulirPengaturan awal={pengaturan} />
 
             <PanelQr awal={pengaturan} />

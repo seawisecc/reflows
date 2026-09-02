@@ -3,6 +3,7 @@ import { cache } from "react";
 import { klien_server } from "@/lib/supabase/server";
 import { klien_layanan } from "@/lib/supabase/layanan";
 import { supabase_siap } from "@/lib/lingkungan";
+import { izin_layanan, type IzinLayanan } from "@/lib/layanan";
 import type { ModeBalas } from "@/tipe";
 
 export type Pengaturan = {
@@ -16,6 +17,10 @@ export type Pengaturan = {
   zona_waktu: string;
   pesan_di_luar_jam: string | null;
   kuota_pesan_harian: number;
+  dijeda_at: string | null;
+  alasan_jeda: string | null;
+  /** Keadaan layanan, dihitung dari saklar tenant dan saklar Seawise. */
+  izin: IzinLayanan;
   /** Token tidak pernah dikirim ke browser, cuma kabar ada tidaknya. */
   ada_token: boolean;
   url_webhook: string | null;
@@ -65,7 +70,7 @@ export async function ambil_pengaturan(
   const { data } = await db
     .from("pengaturan_tenant")
     .select(
-      "tenant_id, gateway, nomor_wa, mode_balas, ambang_keyakinan, jam_mulai, jam_selesai, zona_waktu, pesan_di_luar_jam, kuota_pesan_harian, perangkat_tersambung, perangkat_nama, perangkat_paket, perangkat_kuota, perangkat_kedaluwarsa, perangkat_diperiksa_at",
+      "tenant_id, gateway, nomor_wa, mode_balas, ambang_keyakinan, jam_mulai, jam_selesai, zona_waktu, pesan_di_luar_jam, kuota_pesan_harian, perangkat_tersambung, perangkat_nama, perangkat_paket, perangkat_kuota, perangkat_kedaluwarsa, perangkat_diperiksa_at, dijeda_at, alasan_jeda, tenants:tenant_id ( aktif )",
     )
     .maybeSingle();
 
@@ -105,6 +110,12 @@ export async function ambil_pengaturan(
     zona_waktu: data.zona_waktu as string,
     pesan_di_luar_jam: data.pesan_di_luar_jam as string | null,
     kuota_pesan_harian: Number(data.kuota_pesan_harian),
+    dijeda_at: (data.dijeda_at as string | null) ?? null,
+    alasan_jeda: (data.alasan_jeda as string | null) ?? null,
+    izin: izin_layanan({
+      aktif: (data.tenants as unknown as { aktif: boolean } | null)?.aktif === true,
+      dijeda_at: (data.dijeda_at as string | null) ?? null,
+    }),
     ada_token,
     url_webhook,
     perangkat: {
@@ -128,6 +139,7 @@ export type PengaturanRingkas = {
   kuota_pesan_harian: number;
   tersambung: boolean | null;
   diperiksa_at: string | null;
+  izin: IzinLayanan;
 };
 
 /**
@@ -144,7 +156,7 @@ export const pengaturan_ringkas = cache(async function pengaturan_ringkas(): Pro
   const { data } = await db
     .from("pengaturan_tenant")
     .select(
-      "gateway, nomor_wa, mode_balas, jam_mulai, jam_selesai, zona_waktu, kuota_pesan_harian, perangkat_tersambung, perangkat_diperiksa_at",
+      "gateway, nomor_wa, mode_balas, jam_mulai, jam_selesai, zona_waktu, kuota_pesan_harian, perangkat_tersambung, perangkat_diperiksa_at, dijeda_at, tenants:tenant_id ( aktif )",
     )
     .maybeSingle();
   if (!data) return null;
@@ -158,6 +170,10 @@ export const pengaturan_ringkas = cache(async function pengaturan_ringkas(): Pro
     kuota_pesan_harian: Number(data.kuota_pesan_harian),
     tersambung: data.perangkat_tersambung as boolean | null,
     diperiksa_at: data.perangkat_diperiksa_at as string | null,
+    izin: izin_layanan({
+      aktif: (data.tenants as unknown as { aktif: boolean } | null)?.aktif === true,
+      dijeda_at: (data.dijeda_at as string | null) ?? null,
+    }),
   };
 });
 

@@ -207,3 +207,44 @@ export async function ambil_qr(): Promise<HasilQr> {
   });
   return gateway.qr();
 }
+
+/**
+ * Menjeda dan menyalakan kembali otomasi, dipegang pemilik sendiri.
+ *
+ * Tidak ada satu baris pun yang dihapus. Nomor WhatsApp, token gateway,
+ * rahasia webhook, materi admin, kontak, kampanye, dan seluruh riwayat
+ * percakapan tetap di tempatnya. Menyalakan lagi berarti mengosongkan satu
+ * kolom, bukan menyiapkan ulang dari nol.
+ *
+ * Saklar ini TIDAK bisa melepas suspensi dari Seawise. Suspensi ada di
+ * tabel tenants yang tidak punya kebijakan RLS untuk update, jadi permintaan
+ * dari browser tidak menyentuh satu baris pun di sana.
+ */
+export async function ubah_jeda(
+  jeda: boolean,
+  alasan?: string,
+): Promise<{ galat: string | null }> {
+  const tenant_id = await tenant_saya();
+  if (!tenant_id) return { galat: "Sesi kamu sudah habis. Masuk lagi ya." };
+
+  const db = await klien_server();
+  const { error } = await db
+    .from("pengaturan_tenant")
+    .update(
+      jeda
+        ? {
+            dijeda_at: new Date().toISOString(),
+            alasan_jeda: (alasan ?? "").trim().slice(0, 200) || null,
+          }
+        : { dijeda_at: null, alasan_jeda: null },
+    )
+    .eq("tenant_id", tenant_id);
+
+  if (error) return { galat: `Gagal mengubah: ${error.message}` };
+
+  revalidatePath("/pengaturan");
+  revalidatePath("/dasbor");
+  revalidatePath("/percakapan");
+  revalidatePath("/kampanye");
+  return { galat: null };
+}

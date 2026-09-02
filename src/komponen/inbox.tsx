@@ -193,9 +193,12 @@ function TombolStatus({
 export function Inbox({
   percakapan,
   bisa_kirim = true,
+  alasan_tidak_bisa = null,
 }: {
   percakapan: Percakapan[];
   bisa_kirim?: boolean;
+  /** Kenapa tombol kirim mati, kalau matinya bukan karena data contoh. */
+  alasan_tidak_bisa?: string | null;
 }) {
   const [saringan, setSaringan] = React.useState<Saringan>("semua");
   const [cari, setCari] = React.useState("");
@@ -414,7 +417,8 @@ export function Inbox({
                 aktif.kontak.opt_out_at
                   ? "Kontak ini sudah minta berhenti dihubungi."
                   : !bisa_kirim
-                    ? "Ini data contoh, belum tersambung ke WhatsApp."
+                    ? (alasan_tidak_bisa ??
+                      "Ini data contoh, belum tersambung ke WhatsApp.")
                     : null
               }
             />

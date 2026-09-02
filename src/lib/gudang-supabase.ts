@@ -25,15 +25,21 @@ export function gudang_supabase(db: SupabaseClient): Gudang {
       const { data, error } = await db
         .from("pengaturan_tenant")
         .select(
-          "tenant_id, nomor_wa, mode_balas, ambang_keyakinan, jam_mulai, jam_selesai, zona_waktu, pesan_di_luar_jam",
+          "tenant_id, nomor_wa, mode_balas, ambang_keyakinan, jam_mulai, jam_selesai, zona_waktu, pesan_di_luar_jam, dijeda_at, tenants:tenant_id ( aktif )",
         )
         .eq("rahasia_webhook", rahasia)
         .maybeSingle();
 
       if (error || !data) return null;
+      const tenant = data.tenants as unknown as { aktif: boolean } | null;
       return {
         ...data,
         ambang_keyakinan: Number(data.ambang_keyakinan),
+        // Tenant yang barisnya hilang dianggap mati, bukan hidup. Kalau
+        // dibalik, kesalahan join justru membuat layanan yang disuspensi
+        // tetap membalas.
+        aktif: tenant?.aktif === true,
+        dijeda_at: (data.dijeda_at as string | null) ?? null,
       } as KonteksTenant;
     },
 

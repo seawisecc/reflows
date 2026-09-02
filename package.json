@@ -24,7 +24,8 @@
     "deploy:pratinjau": "vercel --yes",
     "pasang-cron": "tsx skrip/pasang-cron.ts",
     "periksa-cron": "tsx skrip/periksa-cron.ts",
-    "uji-kampanye": "tsx skrip/uji-kampanye.ts"
+    "uji-kampanye": "tsx skrip/uji-kampanye.ts",
+    "tenant-aktif": "tsx skrip/tenant-aktif.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",

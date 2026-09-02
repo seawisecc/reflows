@@ -1,6 +1,7 @@
 import type { PesanMasuk } from "./gateway";
 import { dalam_jam_aktif, minta_berhenti, perlu_eskalasi } from "./aturan";
 import { nomor_sama } from "./gateway/nomor";
+import { izin_layanan, type IzinLayanan } from "./layanan";
 import type { ModeBalas, StatusPercakapan } from "@/tipe";
 
 /** Jeda minimum sebelum pemberitahuan di luar jam kerja boleh diulang. */
@@ -15,6 +16,10 @@ export type KonteksTenant = {
   jam_selesai: string;
   zona_waktu: string;
   pesan_di_luar_jam: string | null;
+  /** tenants.aktif. Saklar milik Seawise. */
+  aktif: boolean;
+  /** pengaturan_tenant.dijeda_at. Saklar milik tenant sendiri. */
+  dijeda_at: string | null;
 };
 
 export type BarisKontak = { id: string; opt_out_at: string | null };
@@ -85,6 +90,8 @@ export type HasilTerima =
       balasan_otomatis: string | null;
       /** Berapa sequence kampanye yang berhenti karena balasan ini. */
       kampanye_dihentikan: number;
+      /** Apa yang boleh jalan untuk tenant ini. Dibaca pemanggil. */
+      izin: IzinLayanan;
     };
 
 function lewat_jeda(terakhir: string | null, sekarang: Date): boolean {
@@ -118,6 +125,11 @@ export async function terima_pesan(
   if (tenant.nomor_wa && !nomor_sama(tenant.nomor_wa, pesan.nomor_perangkat)) {
     return { jenis: "ditolak", sebab: "nomor perangkat bukan milik tenant ini" };
   }
+
+  // Layanan yang mati tetap mencatat pesan masuk. Yang berhenti cuma
+  // balasannya. Membuang chat client berarti pemiliknya kehilangan semua
+  // yang masuk selama mati, dan itu justru saat dia paling perlu tahu.
+  const izin = izin_layanan({ aktif: tenant.aktif, dijeda_at: tenant.dijeda_at });
 
   if (pesan.wa_message_id) {
     const ada = await gudang.pesan_sudah_ada(tenant.tenant_id, pesan.wa_message_id);
@@ -161,6 +173,7 @@ export async function terima_pesan(
       opt_out: true,
       balasan_otomatis: null,
       kampanye_dihentikan: dihentikan,
+      izin,
     };
   }
 
@@ -198,6 +211,7 @@ export async function terima_pesan(
     tenant.zona_waktu,
   );
   if (
+    izin.balas_ai &&
     di_luar_jam &&
     tenant.pesan_di_luar_jam &&
     lewat_jeda(percakapan.luar_jam_dibalas_at, sekarang)
@@ -218,5 +232,6 @@ export async function terima_pesan(
     opt_out: false,
     balasan_otomatis: balasan,
     kampanye_dihentikan,
+    izin,
   };
 }

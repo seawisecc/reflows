@@ -24,6 +24,8 @@ export const TENANT_UJI: KonteksTenant = {
   jam_selesai: "20:00",
   zona_waktu: "Asia/Makassar",
   pesan_di_luar_jam: "Terima kasih, di luar jam kerja. Dibalas besok pagi.",
+  aktif: true,
+  dijeda_at: null,
 };
 
 /**

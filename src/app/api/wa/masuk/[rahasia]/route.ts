@@ -137,10 +137,11 @@ export async function POST(
   }
 
   // Balasan otomatis hanya untuk percakapan yang masih dipegang AI. Yang
-  // sudah dieskalasi aturan, sudah ditangani manusia, atau sudah minta
-  // berhenti, tidak boleh disela mesin.
+  // sudah dieskalasi aturan, sudah ditangani manusia, sudah minta berhenti,
+  // atau layanannya sedang dijeda maupun disuspensi, tidak boleh disela
+  // mesin. Pesannya sendiri sudah tersimpan di atas.
   let balasan_ai: string | null = null;
-  if (hasil.status === "ai" && !hasil.opt_out) {
+  if (hasil.status === "ai" && !hasil.opt_out && hasil.izin.balas_ai) {
     try {
       const jawab = await balas_otomatis(db, {
         tenant_id: hasil.tenant_id,
@@ -162,6 +163,7 @@ export async function POST(
     ok: true,
     status: hasil.status,
     opt_out: hasil.opt_out,
+    layanan: hasil.izin.jenis,
     balasan_terkirim,
     balasan_ai,
   });

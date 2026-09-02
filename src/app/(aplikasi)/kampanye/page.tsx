@@ -6,7 +6,9 @@ import { Kosong } from "@/komponen/ui/kosong";
 import { Lencana, TitikStatus, type NadaLencana } from "@/komponen/ui/lencana";
 import { BarBlok } from "@/komponen/ui/statistik";
 import { PanelBuat } from "./panel-buat";
+import { SpandukLayanan } from "@/komponen/spanduk-layanan";
 import { ambil_kampanye, ambil_tag } from "@/lib/data/kampanye";
+import { pengaturan_ringkas } from "@/lib/data/pengaturan";
 import { supabase_siap } from "@/lib/lingkungan";
 import type { StatusKampanye } from "@/tipe";
 
@@ -42,7 +44,11 @@ export default async function HalamanKampanye() {
     );
   }
 
-  const [daftar, tag] = await Promise.all([ambil_kampanye(), ambil_tag()]);
+  const [daftar, tag, pengaturan] = await Promise.all([
+    ambil_kampanye(),
+    ambil_tag(),
+    pengaturan_ringkas(),
+  ]);
   const jalan = daftar.filter((k) => k.status === "jalan").length;
 
   return (
@@ -56,6 +62,8 @@ export default async function HalamanKampanye() {
         }
       />
       <main className="space-y-6 p-4 sm:p-6">
+        {pengaturan ? <SpandukLayanan izin={pengaturan.izin} /> : null}
+
         <PanelBuat tag={tag} />
 
         {daftar.length === 0 ? (

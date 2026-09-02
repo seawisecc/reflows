@@ -322,6 +322,58 @@ async function main() {
     `nilai: ${ringkasRatna.rows[0]?.r?.pesan_masuk_hari_ini}`,
   );
 
+  // ---- Saklar layanan ----
+  // Dua saklar yang berbeda pemiliknya. Yang penting dibuktikan di sini:
+  // tenant bisa menjeda dirinya sendiri, tapi TIDAK bisa melepas suspensi
+  // yang dipasang Seawise. Kalau bisa, tenant yang berhenti bayar tinggal
+  // menekan satu tombol untuk menyalakan lagi layanannya.
+  console.log("\nSaklar layanan");
+  await jadiPengguna("11111111-1111-1111-1111-111111111111");
+
+  const jeda_sendiri = await db.query(
+    `update public.pengaturan_tenant set dijeda_at = now(), alasan_jeda = 'libur'
+      where tenant_id = 'aaaaaaaa-0000-0000-0000-000000000001' returning tenant_id`,
+  );
+  periksa(
+    "pemilik boleh menjeda layanannya sendiri",
+    jeda_sendiri.rows.length === 1,
+    `terubah: ${jeda_sendiri.rows.length}`,
+  );
+
+  await tolak(
+    db,
+    "pemilik tidak boleh mengubah kolom rahasia lewat jalur yang sama",
+    `update public.pengaturan_tenant set gateway_token_terenkripsi = 'curang'
+      where tenant_id = 'aaaaaaaa-0000-0000-0000-000000000001'`,
+    "permission denied",
+  );
+
+  const lepas_suspensi = await db.query(
+    `update public.tenants set aktif = true
+      where id = 'aaaaaaaa-0000-0000-0000-000000000001' returning id`,
+  );
+  periksa(
+    "tenant tidak bisa menyentuh saklar suspensi milik Seawise",
+    lepas_suspensi.rows.length === 0,
+    `terubah: ${lepas_suspensi.rows.length}`,
+  );
+
+  const jeda_tenant_lain = await db.query(
+    `update public.pengaturan_tenant set dijeda_at = now()
+      where tenant_id = 'bbbbbbbb-0000-0000-0000-000000000002' returning tenant_id`,
+  );
+  periksa(
+    "tenant tidak bisa menjeda layanan tenant lain",
+    jeda_tenant_lain.rows.length === 0,
+    `terubah: ${jeda_tenant_lain.rows.length}`,
+  );
+
+  // Dikembalikan supaya uji sesudahnya tidak terpengaruh.
+  await db.exec(`reset role;`);
+  await db.exec(
+    `update public.pengaturan_tenant set dijeda_at = null, alasan_jeda = null;`,
+  );
+
   console.log("\nHak service_role");
   await db.exec(`reset role;`);
   await db.exec(`set role service_role;`);

@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { BilahAtas } from "@/komponen/shell/bilah-atas";
 import { Penyegar } from "@/komponen/penyegar";
+import { SpandukLayanan } from "@/komponen/spanduk-layanan";
 import { Kartu, KepalaKartu } from "@/komponen/ui/kartu";
 import { KartuStatistik, BarBlok } from "@/komponen/ui/statistik";
 import { Lencana, TitikStatus } from "@/komponen/ui/lencana";
@@ -84,6 +85,8 @@ export default async function Dasbor() {
       {nyata ? <Penyegar jeda_detik={30} /> : null}
 
       <main className="space-y-6 p-4 sm:p-6">
+        {pengaturan ? <SpandukLayanan izin={pengaturan.izin} /> : null}
+
         <section
           aria-label="Angka utama"
           className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
