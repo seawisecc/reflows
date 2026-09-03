@@ -56,11 +56,13 @@ Supabase (PostgreSQL + Auth + RLS). Vercel. Claude API lewat
 ## Susunan folder
 
 ```
+src/app/page.tsx      Halaman depan publik, satu-satunya layar tanpa sesi
 src/app/(aplikasi)/   Halaman dasbor, satu folder per menu
 src/app/api/wa/       Webhook penerima pesan WhatsApp
 src/app/masuk/        Halaman login
 src/komponen/ui/      Komponen pixel: tombol, kartu, tabel, lencana, grafik
 src/komponen/shell/   Bilah sisi, bilah atas, tombol tema
+src/komponen/depan/   Bagian dan kartu paket halaman depan
 src/lib/ai/           Peta kemampuan model, penyusun instruksi, mesin balasan
 src/lib/kampanye/     Aturan anti-ban dan antrean kampanye keluar
 src/lib/invoice/      Aritmetika invoice, penyusun PDF, penyimpanan berkas
@@ -69,6 +71,8 @@ src/lib/gateway/      Adapter WhatsApp: jenis, nomor, fonnte, mock
 src/lib/impor/        Impor materi dari PDF, web, dan spreadsheet
 src/lib/data/         Pembacaan data lewat sesi pengguna (kena RLS)
 src/lib/supabase/     Klien browser, server, service role, proxy
+src/lib/depan.ts      Isi halaman depan, angka paketnya dibaca dari paket.ts
+src/lib/jalur-terbuka.ts  Gerbang jalur tanpa sesi, dipisah supaya bisa diuji
 src/lib/log.ts        Log terstruktur, dengan daftar kunci yang boleh terbit
 src/lib/merek.ts      Bentuk dan warna logo, satu sumber untuk semua turunannya
 src/komponen/merek/   Lambang untuk dipakai di dalam aplikasi
@@ -95,8 +99,9 @@ level di ukuran 8, 16, 24, 32, tapi melonjak jadi 50 sampai 83 di ukuran 9,
 11, 12, dan 14.
 
 Ukuran font pixel tidak pernah ditulis lepas. Pakai `pixel-sm` (8px),
-`pixel-lg` (16px), atau `pixel-xl` (24px). Jangan menimpanya dengan
-`text-[..]` atau `leading-*`. Teks yang isinya data, misalnya nama kontak,
+`pixel-lg` (16px), `pixel-xl` (24px), atau `pixel-2xl` (32px) yang cuma
+untuk judul utama halaman depan. Jangan menimpanya dengan `text-[..]` atau
+`leading-*`. Teks yang isinya data, misalnya nama kontak,
 memakai font badan biasa karena font pixel menyulitkan membaca nama orang.
 
 ### Warna
@@ -311,6 +316,15 @@ Dicatat supaya tidak terulang.
     di layar itu terlihat persis sama dengan chat yang memang sedang
     dipegang AI. Sekarang janjinya dipegang kode, bukan komentar, lewat
     `dengan_jaring` di `src/lib/jaring-balasan.ts` yang diuji terpisah.
+24. **Halaman depan yang terbuka nyaris membuka seluruh aplikasi.**
+    Gerbang di `src/proxy.ts` mencocokkan awalan, jadi menaruh `/` di daftar
+    jalur terbuka terlihat seperti membuka semua halaman sekaligus. Yang
+    menyelamatkan cuma satu detail: pencocokannya menempelkan garis miring,
+    jadi awalan untuk `/` menjadi `//` dan tidak cocok dengan `/dasbor`.
+    Menyederhanakan pencocokan itu jadi `startsWith(t)` saja akan membuka
+    seluruh data pelanggan tanpa sesi, tanpa galat apa pun yang muncul.
+    Sekarang halaman depan ada di daftar terpisah yang cocok persis, dan
+    gerbangnya diuji di `src/lib/jalur-terbuka.ts`.
 
 ---
 

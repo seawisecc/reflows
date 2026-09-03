@@ -42,3 +42,15 @@ export function supabase_siap() {
 export function alamat_aplikasi() {
   return process.env.URL_APLIKASI ?? "https://reflows.seawise.id";
 }
+
+/**
+ * Nomor WhatsApp untuk calon pelanggan di halaman depan.
+ *
+ * Kosong berarti tombol chatnya tidak muncul sama sekali. Halaman jualan
+ * yang menampilkan nomor karangan lebih buruk daripada halaman yang cuma
+ * menyuruh masuk, karena orang benar-benar akan mengetik ke nomor itu.
+ */
+export function kontak_whatsapp(): string | null {
+  const nomor = (process.env.NEXT_PUBLIC_KONTAK_WA ?? "").replace(/\D/g, "");
+  return nomor.length >= 9 ? nomor : null;
+}

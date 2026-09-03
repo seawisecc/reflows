@@ -149,8 +149,14 @@ baru justru sebaliknya. Petanya ada di `src/lib/ai/model.ts`.
 ## Ketajaman teks
 
 Font pixel hanya tajam di ukuran kelipatan 8. Skalanya dikunci lewat kelas
-`pixel-sm`, `pixel-lg`, dan `pixel-xl`, bukan angka lepas di komponen, supaya
-tidak melenceng lagi saat halaman baru ditambah. Rinciannya di README.
+`pixel-sm`, `pixel-lg`, `pixel-xl`, dan `pixel-2xl`, bukan angka lepas di
+komponen, supaya tidak melenceng lagi saat halaman baru ditambah. Rinciannya
+di README.
+
+`pixel-2xl` yang 32 piksel ditambahkan belakangan, khusus untuk judul utama
+halaman depan. Di dalam aplikasi tidak ada teks sebesar itu, dan memakainya
+di sana akan merusak kepadatan dasbor. Ukurannya tetap kelipatan 8, jadi
+aturan ketajamannya tidak dilanggar.
 
 Teks kecil non-pixel dinaikkan dari 10 dan 11 piksel ke 12 piksel, dan nama
 kontak dipindah dari font pixel ke font badan supaya nama orang lebih mudah
@@ -169,6 +175,35 @@ isi. Nilainya sudah lolos pemeriksaan buta warna dan kontras:
 
 Identitas seri tidak pernah bergantung warna saja. Selalu ada legenda, label
 angka langsung di atas batang, dan tombol untuk melihat versi tabelnya.
+
+## Halaman depan
+
+Sampai halaman ini dibuat, `/` langsung dialihkan ke `/dasbor`, jadi tautan
+yang dibagikan mendarat di formulir login. Produk yang dijual sebagai
+langganan tidak bisa begitu.
+
+Angka paket di halaman itu dibaca dari `PAKET` di `src/lib/paket.ts`, tabel
+yang sama yang dipakai mesin untuk memaksakan kuota. Menulis ulang angkanya
+di halaman jualan berarti suatu saat brosur menjanjikan 1.000 balasan
+sementara mesin berhenti di 750, dan yang menanggung selisihnya pelanggan
+yang sudah bayar. Uji `depan.test.ts` menjaga hubungan itu, termasuk
+memastikan paket baru tidak diam-diam absen dari halaman.
+
+Isinya sengaja memuat hal yang biasanya disembunyikan halaman jualan:
+
+- Akun gateway atas nama tenant sendiri, dan paket gratis Fonnte menempelkan
+  tulisan iklan di setiap pesan keluar.
+- Belum ada pendaftaran mandiri, akun dibuatkan manual.
+- Urutan keputusan mesinnya ditulis apa adanya, termasuk bahwa AI berhenti
+  dan menyerahkan chat ke manusia dalam beberapa keadaan.
+
+Ketiganya akan ketahuan di minggu pertama pemakaian. Menyembunyikannya cuma
+memindahkan kekecewaan ke titik yang lebih mahal, yaitu setelah orang bayar.
+
+Ajakan chatnya memakai `NEXT_PUBLIC_KONTAK_WA`. Kalau kosong, tombolnya
+tidak muncul sama sekali dan ajakannya jatuh ke halaman masuk, karena
+halaman jualan yang menampilkan nomor karangan lebih buruk daripada halaman
+yang cuma menyuruh masuk.
 
 ## Peta fase
 

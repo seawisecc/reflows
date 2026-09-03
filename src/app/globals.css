@@ -149,7 +149,8 @@ body {
 .pixel,
 .pixel-sm,
 .pixel-lg,
-.pixel-xl {
+.pixel-xl,
+.pixel-2xl {
   font-family: var(--font-pixel-display), ui-monospace, monospace;
   letter-spacing: 0;
   font-synthesis: none;
@@ -169,6 +170,14 @@ body {
 .pixel-xl {
   font-size: 24px;
   line-height: 32px;
+}
+
+/* Cuma untuk judul utama halaman depan. Di dalam aplikasi tidak ada teks
+   sebesar ini, dan menambahkannya di sana akan merusak kepadatan dasbor.
+   Tetap kelipatan 8, jadi aturan ketajamannya tidak dilanggar. */
+.pixel-2xl {
+  font-size: 32px;
+  line-height: 48px;
 }
 
 .angka {
