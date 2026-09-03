@@ -427,10 +427,12 @@ Tidak satu pun bisa dikerjakan dari dalam repo ini.
 1. **Isi identitas invoice.** Alamat bisnis dan nomor rekening masih kosong
    di Pengaturan, jadi PDF yang terbit sekarang tidak memuat cara
    pembayaran dan client harus menanyakannya lagi.
-2. **Naikkan paket Fonnte ke Master.** Sekarang masih Free, jadi setiap
-   pesan keluar membawa tulisan "Sent via fonnte.com". Untuk balasan ke
-   client yang sudah kenal itu mengganggu, untuk sapaan pertama kampanye ke
-   prospek dingin itu mematikan kesan.
+2. **Naikkan paket Fonnte ke Master, dan sekarang itu tanggungan Seawise.**
+   Masih Free, jadi setiap pesan keluar membawa tulisan "Sent via
+   fonnte.com". Sejak 3 September 2026 gateway ikut dijual di dalam paket
+   Reflows, jadi tulisan itu bukan lagi urusan tenant melainkan janji yang
+   sudah tertulis di halaman depan. Paketnya per device, bukan per akun,
+   jadi tiap nomor tenant berbiaya Rp 175.000 sebulan.
 3. **Buat API key Claude terpisah khusus Reflows.** Sekarang satu key untuk
    seluruh organisasi Seawise, jadi angka di Console tidak akan pernah bisa
    dibandingkan dengan angka di halaman Penggunaan.

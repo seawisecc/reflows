@@ -149,7 +149,7 @@ export default function HalamanDepan() {
         <Bagian
           id="paket"
           judul="Paket"
-          keterangan="Harga per bulan, di luar biaya gateway WhatsApp yang akunnya atas nama kamu sendiri. Kuota yang lewat ditagih per balasan, dan kamu bisa memasang batas supaya AI berhenti alih-alih menambah tagihan."
+          keterangan="Harga per bulan, gateway WhatsApp sudah termasuk, jadi tidak ada layanan lain yang perlu kamu daftar dan bayar sendiri. Kuota yang lewat ditagih per balasan, dan kamu bisa memasang batas supaya AI berhenti alih-alih menambah tagihan."
         >
           <div className="grid gap-4 lg:grid-cols-3">
             {URUTAN_PAKET.map((nama) => (
@@ -160,7 +160,7 @@ export default function HalamanDepan() {
 
         <Bagian
           judul="Yang perlu kamu siapkan"
-          keterangan="Tiga hal, dan tidak ada yang perlu dibeli dari kami."
+          keterangan="Tiga hal, semuanya dari sisi kamu. Tidak ada layanan pihak ketiga yang perlu kamu beli."
         >
           <div className="grid gap-4 sm:grid-cols-3">
             {YANG_DISIAPKAN.map((y) => (

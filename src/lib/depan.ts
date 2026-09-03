@@ -105,6 +105,10 @@ export const KEMAMPUAN: { judul: string; isi: string }[] = [
     isi: "Disusun dari daftar layanan, jadi PDF, lalu terkirim ke chat client beserta ringkasan tagihannya. Angkanya disalin saat diterbitkan, jadi menaikkan harga bulan depan tidak mengubah invoice yang sudah dibayar.",
   },
   {
+    judul: "Gateway WhatsApp sudah termasuk",
+    isi: "Kamu tidak perlu mendaftar dan membayar layanan gateway sendiri. Nomornya juga bersih: tidak ada tulisan iklan yang menempel di pesan yang diterima client kamu.",
+  },
+  {
     judul: "Biaya yang kelihatan sepanjang bulan",
     isi: "Jumlah balasan dan biaya modelnya terbaca tiap saat, dengan peringatan di 80 persen kuota. Kamu juga bisa memasang batas sendiri supaya AI berhenti alih-alih menambah tagihan.",
   },
@@ -113,14 +117,14 @@ export const KEMAMPUAN: { judul: string; isi: string }[] = [
 export const YANG_DISIAPKAN: { judul: string; isi: string }[] = [
   {
     judul: "Nomor WhatsApp bisnis",
-    isi: "Nomor yang memang dipakai melayani client. Menyambungkannya cukup memindai QR di halaman Pengaturan.",
-  },
-  {
-    judul: "Akun gateway sendiri",
-    isi: "Reflows mengirim lewat Fonnte, dan akunnya atas nama kamu, bukan atas nama kami. Paket gratisnya cukup untuk mencoba, tapi menempelkan tulisan Sent via fonnte.com di setiap pesan keluar, jadi untuk dipakai ke client sungguhan perlu naik paket.",
+    isi: "Nomor yang memang dipakai melayani client. Menyambungkannya cukup memindai QR di halaman Pengaturan, dan gatewaynya kami yang urus.",
   },
   {
     judul: "Materi yang mau dijawab AI",
-    isi: "Layanan, harga, dan pertanyaan yang sering masuk. Boleh diketik satu per satu, boleh diimpor dari dokumen yang sudah ada.",
+    isi: "Layanan, harga, dan pertanyaan yang sering masuk. Boleh diketik satu per satu, boleh diimpor dari daftar harga PDF, halaman situs, atau spreadsheet yang sudah ada.",
+  },
+  {
+    judul: "Aturan mainnya",
+    isi: "Jam kerja, seberapa yakin AI harus sebelum boleh mengirim sendiri, dan hal apa saja yang harus langsung diserahkan ke kamu. Semuanya bisa diubah kapan saja.",
   },
 ];

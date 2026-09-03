@@ -2,10 +2,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   AMBANG_PERINGATAN,
+  BIAYA_AI_PER_BALASAN,
   izin_kuota,
+  marjin_penuh,
   PAKET,
   paket_sah,
   tagihan_bulan_ini,
+  type NamaPaket,
 } from "@/lib/paket";
 
 test("tiga paket, semuanya naik kuota dan naik harga", () => {
@@ -117,4 +120,58 @@ test("tagihan bulan ini pokok ditambah kelebihan", () => {
     tagihan_bulan_ini({ ...AWAL, terpakai: 800 }),
     PAKET.mulai.harga_bulanan + 50 * PAKET.mulai.tarif_kelebihan,
   );
+});
+
+test("tidak ada paket yang dijual di bawah biayanya", () => {
+  // Sejak gateway ikut ditanggung Seawise, harga paket punya lantai yang
+  // nyata. Menurunkan harga tanpa menghitung ulang biayanya berarti tiap
+  // pelanggan baru menambah rugi, dan itu baru ketahuan saat menagih.
+  for (const nama of Object.keys(PAKET) as NamaPaket[]) {
+    const marjin = marjin_penuh(nama);
+    assert.ok(
+      marjin > 0,
+      `${nama} rugi ${marjin} saat kuotanya terpakai habis`,
+    );
+  }
+});
+
+test("marjin tiap paket tidak turun di bawah sepertiga harganya", () => {
+  // Bukan angka keramat, tapi ambang yang membuat penurunan harga atau
+  // penambahan nomor yang diam-diam menggerus marjin jadi kelihatan.
+  for (const nama of Object.keys(PAKET) as NamaPaket[]) {
+    const rasio = marjin_penuh(nama) / PAKET[nama].harga_bulanan;
+    assert.ok(
+      rasio >= 1 / 3,
+      `marjin ${nama} cuma ${Math.round(rasio * 100)} persen`,
+    );
+  }
+});
+
+test("tarif kelebihan tidak pernah di bawah biaya balasannya", () => {
+  // Kalau lebih murah dari biayanya, tenant yang boros justru menambah
+  // rugi, padahal maksud tarif ini sebaliknya.
+  for (const nama of Object.keys(PAKET) as NamaPaket[]) {
+    assert.ok(
+      PAKET[nama].tarif_kelebihan >= BIAYA_AI_PER_BALASAN * 2,
+      `tarif kelebihan ${nama} terlalu tipis`,
+    );
+  }
+});
+
+test("tidak ada paket yang menjanjikan lebih dari satu nomor", () => {
+  // Reflows menyimpan tepat satu kredensial gateway per tenant, di
+  // pengaturan_tenant yang tenant_id-nya primary key, dan webhooknya
+  // menolak pesan dari nomor perangkat lain. Selama itu masih begitu,
+  // paket yang menjanjikan dua nomor adalah janji yang tidak bisa ditepati
+  // mesin, dan halaman depan menampilkannya ke calon pelanggan.
+  //
+  // Uji ini yang harus diubah lebih dulu kalau dukungan banyak nomor
+  // dibangun, bukan angkanya yang dinaikkan diam-diam.
+  for (const nama of Object.keys(PAKET) as NamaPaket[]) {
+    assert.equal(
+      PAKET[nama].nomor_whatsapp,
+      1,
+      `${nama} menjanjikan ${PAKET[nama].nomor_whatsapp} nomor`,
+    );
+  }
 });

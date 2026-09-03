@@ -6,9 +6,30 @@
  * memakainya, dan menaruhnya di database berarti suatu saat ada tenant yang
  * paketnya diam-diam berbeda dari yang tertulis di brosur.
  *
- * Angkanya berasal dari hitungan di docs/keputusan-produk.md. Biaya AI yang
- * dipakai berhitung Rp 80 per balasan, dua kali lipat biaya terukur.
+ * Angkanya berasal dari hitungan di docs/keputusan-produk.md.
+ *
+ * Sejak 3 September 2026 gateway WhatsApp ikut ditanggung Seawise dan
+ * dimasukkan ke harga paket, tidak lagi dibeli sendiri oleh tenant. Itu
+ * membalik keputusan sebelumnya, dan alasannya ada di docs. Akibatnya biaya
+ * per tenant naik satu paket Fonnte Master, dan harga paket ikut naik.
  */
+
+/**
+ * Biaya model per balasan yang dipakai menghitung paket, dalam rupiah.
+ * Dua kali lipat biaya terukur, jadi kalau nyatanya lebih murah marjinnya
+ * lebih besar, bukan lebih kecil.
+ */
+export const BIAYA_AI_PER_BALASAN = 80;
+
+/**
+ * Biaya gateway per nomor per bulan, ditanggung Seawise.
+ *
+ * Paket Master Fonnte, yang paling murah tanpa tulisan "Sent via
+ * fonnte.com" di tiap pesan keluar. Paketnya berlaku per device, bukan per
+ * akun, jadi satu akun Fonnte yang menampung banyak nomor tetap membayar
+ * sebanyak nomornya. Kutipan dokumentasi Fonnte ada di docs.
+ */
+export const BIAYA_GATEWAY_PER_NOMOR = 175_000;
 
 export type NamaPaket = "mulai" | "tumbuh" | "penuh";
 
@@ -29,7 +50,7 @@ export type SifatPaket = {
 export const PAKET: Record<NamaPaket, SifatPaket> = {
   mulai: {
     label: "Mulai",
-    harga_bulanan: 349_000,
+    harga_bulanan: 499_000,
     balasan_ai: 750,
     tarif_kelebihan: 300,
     nomor_whatsapp: 1,
@@ -39,7 +60,7 @@ export const PAKET: Record<NamaPaket, SifatPaket> = {
   },
   tumbuh: {
     label: "Tumbuh",
-    harga_bulanan: 749_000,
+    harga_bulanan: 949_000,
     balasan_ai: 2_500,
     tarif_kelebihan: 250,
     nomor_whatsapp: 1,
@@ -49,13 +70,17 @@ export const PAKET: Record<NamaPaket, SifatPaket> = {
   },
   penuh: {
     label: "Penuh",
-    harga_bulanan: 1_490_000,
+    harga_bulanan: 1_690_000,
     balasan_ai: 8_000,
     tarif_kelebihan: 200,
-    nomor_whatsapp: 3,
+    // Satu, bukan tiga. Reflows menyimpan tepat satu kredensial gateway per
+    // tenant, dan webhooknya menolak pesan dari nomor perangkat lain. Angka
+    // di sini pernah tiga, dan itu janji yang tidak bisa ditepati mesin.
+    // Dinaikkan lagi kalau dukungan banyak nomor sudah benar-benar ada.
+    nomor_whatsapp: 1,
     impor_dokumen: null,
     pesan_kampanye: 3_000,
-    keterangan: "Bisnis dengan beberapa cabang atau beberapa nomor",
+    keterangan: "Bisnis dengan chat padat dan kampanye rutin",
   },
 };
 
@@ -142,4 +167,23 @@ export function izin_kuota(k: KeadaanKuota): IzinKuota {
 export function tagihan_bulan_ini(k: KeadaanKuota): number {
   const izin = izin_kuota(k);
   return PAKET[k.paket].harga_bulanan + izin.biaya_kelebihan;
+}
+
+/**
+ * Biaya penuh satu tenant sebulan kalau kuotanya dipakai habis, dalam
+ * rupiah. Model ditambah gateway. Tidak termasuk biaya tetap Seawise
+ * seperti Supabase dan Vercel, yang dibagi bersama semua tenant.
+ */
+export function biaya_penuh(paket: NamaPaket): number {
+  const sifat = PAKET[paket];
+  return (
+    sifat.balasan_ai * BIAYA_AI_PER_BALASAN +
+    sifat.nomor_whatsapp * BIAYA_GATEWAY_PER_NOMOR
+  );
+}
+
+/** Marjin saat kuotanya terpakai habis. Ini keadaan terburuknya, karena
+ *  kuota yang tidak terpakai habis berarti biayanya lebih kecil. */
+export function marjin_penuh(paket: NamaPaket): number {
+  return PAKET[paket].harga_bulanan - biaya_penuh(paket);
 }

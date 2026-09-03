@@ -77,23 +77,78 @@ Setengah dari mesin outbound isinya justru rem, bukan gas:
 - STOP dan BERHENTI masuk daftar berhenti permanen
 - Rem otomatis kalau rasio balasan anjlok
 
-## Watermark Fonnte dan pengaruhnya ke harga jual
+## Gateway ditanggung Seawise, dan pengaruhnya ke harga jual
 
-Paket Fonnte selain Master dan Ultra menempelkan tulisan "Sent via
-fonnte.com" di setiap pesan keluar. Tulisan itu ditambahkan di server
-Fonnte, jadi tidak bisa dihilangkan dari sisi Reflows.
+Diputuskan 3 September 2026, dan **membalik keputusan sebelumnya** yang
+menaruh akun Fonnte atas nama tenant.
 
-Harga di halaman Fonnte saat diperiksa: Master Rp 175.000 dan Ultra
-Rp 355.000 per bulan, keduanya kuota tanpa batas.
+### Apa yang berubah dan kenapa
 
-Ini menyentuh model bisnis, bukan cuma tampilan. Karena setiap tenant
-memakai akun Fonnte-nya sendiri, biaya itu ditanggung tenant, bukan Seawise.
-Yang perlu disampaikan saat menjual Reflows: paket gratis Fonnte cukup untuk
-mencoba, tapi untuk dipakai ke client sungguhan mereka perlu naik paket,
-kalau tidak setiap balasan ke client mereka membawa iklan gateway.
+Pemicunya satu pertanyaan: apakah satu akun Fonnte bisa menampung banyak
+nomor. Bisa. Situs Fonnte menyebut fitur Device Management, "1 Akun bisa
+mengelola banyak device". Tapi dokumentasinya juga menutup harapan
+penghematan:
 
-Peringatan ini muncul sendiri di halaman Pengaturan begitu paket perangkat
-terbaca bukan Master atau Ultra.
+> "Every device will have their own package. A package cannot be shared over
+> several devices."
+
+Paketnya per device, bukan per akun. Tiga nomor berarti tiga paket, mau
+akunnya satu atau tiga. Jadi memindahkan akun ke Seawise tidak menghemat
+sepeser pun, yang berubah cuma siapa yang membayar dan siapa yang mengurus.
+
+Keputusannya tetap diambil, dengan alasan yang bukan penghematan:
+
+1. Tenant tidak perlu mendaftar dan membayar layanan kedua sebelum bisa
+   memakai Reflows. Satu langkah pendaftaran yang hilang adalah satu tempat
+   calon pelanggan berhenti.
+2. Watermark tidak lagi jadi urusan tenant. Selama akunnya milik tenant,
+   selalu ada kemungkinan mereka bertahan di paket gratis, dan setiap pesan
+   ke client mereka membawa tulisan "Sent via fonnte.com". Sekarang Seawise
+   yang memastikan semua nomor memakai Master.
+
+Yang ikut dibeli konsekuensinya, dan ini nyata: Seawise sekarang mengurus
+akun gateway orang lain. Nomor yang terputus, perangkat yang perlu dipindai
+ulang, dan paket yang jatuh tempo jadi pekerjaan Seawise, bukan pekerjaan
+tenant.
+
+### Harga baru
+
+Biaya gateway Rp 175.000 per nomor per bulan, paket Master, yang paling
+murah tanpa watermark. Angka itu masuk ke `BIAYA_GATEWAY_PER_NOMOR` di
+`src/lib/paket.ts`, bukan cuma ke tabel di sini, supaya bisa dijaga uji.
+
+| Paket | Harga lama | Harga baru | Biaya AI penuh | Gateway | Marjin |
+|---|---|---|---|---|---|
+| Mulai | Rp 349.000 | Rp 499.000 | Rp 60.000 | Rp 175.000 | Rp 264.000 (53%) |
+| Tumbuh | Rp 749.000 | Rp 949.000 | Rp 200.000 | Rp 175.000 | Rp 574.000 (60%) |
+| Penuh | Rp 1.490.000 | Rp 1.690.000 | Rp 640.000 | Rp 175.000 | Rp 875.000 (52%) |
+
+Marjinnya sekarang lebih rata, 52 sampai 60 persen, dibanding sebelumnya 83
+sampai 57 persen yang paling tipis justru di paket termahal. Biaya tetap
+Seawise sekitar Rp 742.500 sebulan, masih tertutup tiga tenant paket Mulai.
+
+Tiga uji menjaganya di `paket.test.ts`: tidak ada paket yang dijual di bawah
+biayanya, marjin tidak boleh turun di bawah sepertiga harga, dan tarif
+kelebihan tidak boleh di bawah dua kali biaya balasannya. Ketiganya terbukti
+merah saat harga diturunkan tanpa menghitung ulang biayanya.
+
+### Paket Penuh turun dari tiga nomor jadi satu
+
+Ini bukan keputusan harga, tapi koreksi janji yang tidak bisa ditepati.
+
+`pengaturan_tenant` memakai `tenant_id` sebagai primary key, jadi satu
+tenant tepat satu baris, satu token gateway, satu `nomor_wa`. Webhooknya
+juga menolak pesan yang nomor perangkatnya bukan nomor itu. Reflows tidak
+bisa melayani nomor kedua, dan angka tiga di paket Penuh cuma pernah muncul
+sebagai teks di halaman jualan.
+
+Uji `paket.test.ts` sekarang memaksa semua paket bernomor satu, dengan
+komentar yang menyebut uji itu sendiri yang harus diubah lebih dulu kalau
+dukungan banyak nomor benar-benar dibangun. Menaikkan angkanya diam-diam
+akan merah.
+
+Pembeda paket Penuh tetap ada di tempat lain: kuota balasan, impor dokumen
+tanpa batas, dan kuota kampanye.
 
 ## Login WhatsApp
 
@@ -227,7 +282,11 @@ angka terukur. Itu mengandaikan instruksi tetap 3.000 token, percakapan 800
 token, balasan 200 token, dan prompt caching tidak pernah kena sama sekali.
 Kalau nyatanya lebih murah, marjinnya lebih besar, bukan lebih kecil.
 
-| Paket | Harga per bulan | Balasan AI | Kelebihan | Biaya AI penuh | Marjin |
+Angka di bawah ini adalah hitungan awal, **sebelum** gateway ikut
+ditanggung Seawise. Harga yang berlaku sekarang ada di bagian "Gateway
+ditanggung Seawise" di atas.
+
+| Paket | Harga awal | Balasan AI | Kelebihan | Biaya AI penuh | Marjin awal |
 |---|---|---|---|---|---|
 | Mulai | Rp 349.000 | 750 | Rp 300 | Rp 60.000 | Rp 289.000 (83%) |
 | Tumbuh | Rp 749.000 | 2.500 | Rp 250 | Rp 200.000 | Rp 549.000 (73%) |
@@ -238,10 +297,6 @@ sebulan. Tiga tenant paket Mulai sudah menutupnya. Tarif kelebihan kuota
 yang paling murah, Rp 200, masih dua setengah kali biaya Rp 80, jadi tenant
 boros tetap menambah untung.
 
-Fonnte sengaja tetap atas nama tenant, seperti sekarang. Kalau Seawise yang
-membelikan, Rp 175.000 per tenant langsung menggerus marjin, dan Seawise
-ikut menanggung pekerjaan mengurus akun gateway orang lain.
-
 ### Empat cara paket ini bisa boncos
 
 1. **Menaikkan model tanpa menaikkan harga.** Sonnet 5 dua kali lipat harga
@@ -251,9 +306,11 @@ ikut menanggung pekerjaan mengurus akun gateway orang lain.
 2. **Materi admin yang terlalu gemuk.** Instruksi tetap ikut dikirim di
    setiap balasan. Materi 10.000 token tanpa cache membuat biaya naik jadi
    sekitar Rp 175 per balasan, dan marjin paket Penuh tinggal 6 persen.
-3. **Kuota yang tidak dipaksakan mesin.** `tenants.paket` masih berisi basic
-   dan pro, dan tidak dipakai satu baris kode pun. Belum ada penghitung
-   balasan bulanan. Selama itu, angka kuota cuma janji di brosur.
+3. **Menambah nomor tanpa menaikkan harga.** Sejak gateway ditanggung
+   Seawise, tiap nomor tambahan berbiaya Rp 175.000 sebulan dan langsung
+   memotong marjin. Paket Penuh yang menjanjikan tiga nomor tanpa perubahan
+   harga akan bermarjin 22 persen, bukan 52. Karena itu jumlah nomor dijaga
+   uji, bukan cuma dicatat di sini.
 4. **Waktu manusia.** Satu jam membantu tenant memasang nomor lebih mahal
    daripada seluruh biaya AI paket Mulai sebulan. Karena itu dukungan paket
    Mulai sengaja lewat email saja, dan pemasangan dibuat bisa dikerjakan
