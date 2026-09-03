@@ -1,5 +1,6 @@
 import { FormulirMasuk } from "./formulir";
 import { Kartu } from "@/komponen/ui/kartu";
+import { Logo } from "@/komponen/merek/logo";
 
 export const metadata = { title: "Masuk | Reflows" };
 
@@ -14,12 +15,7 @@ export default async function HalamanMasuk({
     <main className="grid min-h-dvh place-items-center p-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex items-center gap-3">
-          <span
-            aria-hidden
-            className="grid size-10 shrink-0 place-items-center border-2 border-aksen bg-aksen text-aksen-teks"
-          >
-            <span className="pixel-lg leading-none">R</span>
-          </span>
+          <Logo className="size-12" />
           <div>
             <h1 className="pixel-lg uppercase text-teks">Reflows</h1>
             <p className="mt-1 text-xs text-redup">Otomasi admin WhatsApp</p>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, X } from "lucide-react";
 import { keluar } from "@/app/masuk/aksi";
+import { Logo } from "@/komponen/merek/logo";
 import { NAVIGASI } from "./navigasi";
 import { useLaci } from "./laci";
 import { cn } from "@/lib/utils";
@@ -15,12 +16,7 @@ function Merek({ nama_bisnis }: { nama_bisnis: string }) {
       href="/dasbor"
       className="fokus-pixel flex items-center gap-3 border-b-2 border-garis px-4 py-4"
     >
-      <span
-        aria-hidden
-        className="grid size-8 shrink-0 place-items-center border-2 border-aksen bg-aksen text-aksen-teks"
-      >
-        <span className="pixel-lg">R</span>
-      </span>
+      <Logo className="size-10" />
       <span className="min-w-0">
         <span className="pixel-lg block uppercase text-teks">
           Reflows

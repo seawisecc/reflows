@@ -33,3 +33,12 @@ export function supabase_siap() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
 }
+
+/**
+ * Alamat publik aplikasi, dipakai menyusun URL mutlak untuk metadata Open
+ * Graph. Bisa ditimpa lewat URL_APLIKASI supaya deployment lain, misalnya
+ * project Supabase kedua untuk pratinjau, tidak menunjuk ke produksi.
+ */
+export function alamat_aplikasi() {
+  return process.env.URL_APLIKASI ?? "https://reflows.seawise.id";
+}

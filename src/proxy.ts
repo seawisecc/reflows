@@ -11,7 +11,16 @@ import { supabase_siap } from "@/lib/lingkungan";
  * jalurnya, antrean kampanye lewat header rahasia yang dibandingkan dengan
  * timingSafeEqual.
  */
-const TERBUKA = ["/masuk", "/api/wa", "/api/kampanye"];
+const TERBUKA = [
+  "/masuk",
+  "/api/wa",
+  "/api/kampanye",
+  /* Gambar merek. Jalurnya tanpa akhiran berkas, jadi tidak ikut
+     terkecuali oleh matcher di bawah, dan crawler WhatsApp yang kena
+     pengalihan ke halaman masuk cuma menampilkan tautan telanjang. */
+  "/opengraph-image",
+  "/apple-icon",
+];
 
 export async function proxy(permintaan: NextRequest) {
   const jalur = permintaan.nextUrl.pathname;

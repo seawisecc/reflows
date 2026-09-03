@@ -69,6 +69,9 @@ src/lib/gateway/      Adapter WhatsApp: jenis, nomor, fonnte, mock
 src/lib/impor/        Impor materi dari PDF, web, dan spreadsheet
 src/lib/data/         Pembacaan data lewat sesi pengguna (kena RLS)
 src/lib/supabase/     Klien browser, server, service role, proxy
+src/lib/merek.ts      Bentuk dan warna logo, satu sumber untuk semua turunannya
+src/komponen/merek/   Lambang untuk dipakai di dalam aplikasi
+src/aset/             Berkas mentah yang ikut repo, sekarang font gambar OG
 skrip/                Skrip verifikasi dan penyiapan
 supabase/migrations/  Skema database
 docs/                 Keputusan produk beserta alasannya
@@ -285,6 +288,13 @@ Dicatat supaya tidak terulang.
     pernah cocok dengan angka di Reflows. Cara memastikan: Usage, Group by
     API Key, lalu Group by Model. Model selain Haiku 4.5 sudah pasti bukan
     Reflows, karena `MODEL_BALASAN` dan `MODEL_EKSTRAKSI` tidak diset.
+22. **Jalur metadata Next tidak berakhiran nama berkas.** `/opengraph-image`
+    dan `/apple-icon` tidak punya akhiran, jadi lolos dari pengecualian
+    matcher di `src/proxy.ts` dan ikut diperiksa sesi. Crawler WhatsApp yang
+    kena pengalihan ke halaman masuk cuma menampilkan tautan telanjang,
+    tanpa galat apa pun yang kelihatan. Keduanya sudah didaftarkan di
+    `TERBUKA`. Ini varian dari jebakan nomor 14, dan sama tidak
+    kelihatannya.
 
 ---
 
@@ -458,6 +468,7 @@ kontak, percakapan, pesan, dan materi.
 | `npm run contoh-invoice` | Membuat PDF contoh tanpa menyentuh database |
 | `npm run pasang-cron` | Memasang penjadwal antrean di Supabase |
 | `npm run periksa-cron` | Memeriksa apakah cron benar-benar memanggil |
+| `npm run buat-logo` | Menulis ulang berkas SVG logo dari `src/lib/merek.ts` |
 | `npm run deploy` | Deploy ke produksi |
 | `npm run db:push` | Memasang migrasi ke Supabase |
 | `npm run siapkan-tenant` | Mengisi tenant dan materi adminnya |
