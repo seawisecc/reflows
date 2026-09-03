@@ -72,6 +72,8 @@ src/lib/impor/        Impor materi dari PDF, web, dan spreadsheet
 src/lib/data/         Pembacaan data lewat sesi pengguna (kena RLS)
 src/lib/supabase/     Klien browser, server, service role, proxy
 src/lib/depan.ts      Isi halaman depan, angka paketnya dibaca dari paket.ts
+src/lib/tagihan.ts    Aritmetika tagihan langganan, fungsi murni
+src/lib/jaring-balasan.ts Jaring pengaman putaran balasan, dipisah supaya bisa diuji
 src/lib/jalur-terbuka.ts  Gerbang jalur tanpa sesi, dipisah supaya bisa diuji
 src/lib/log.ts        Log terstruktur, dengan daftar kunci yang boleh terbit
 src/lib/merek.ts      Bentuk dan warna logo, satu sumber untuk semua turunannya
@@ -137,10 +139,13 @@ Semuanya `security invoker`, jadi RLS tetap yang menyaring tenant. Kalau
 salah satu dijadikan `security definer`, angka semua pelanggan bocor, dan
 `npm test` memang menangkapnya.
 
-Dua fungsi lain khusus jalur service role dan haknya dicabut dari
+Tiga fungsi lain khusus jalur service role dan haknya dicabut dari
 `authenticated`: `klaim_sasaran()` yang mengunci satu sasaran kampanye
-dengan `for update skip locked`, dan `hentikan_sasaran_kontak()` yang
-dipanggil webhook saat kontak membalas.
+dengan `for update skip locked`, `hentikan_sasaran_kontak()` yang dipanggil
+webhook saat kontak membalas, dan `pemakaian_bulan()` yang menghitung
+balasan satu bulan tertentu saat menyusun tagihan langganan. Ketiganya
+menerima `tenant_id` sebagai parameter, dan itu sebabnya tidak boleh bisa
+dipanggil dari sesi browser mana pun.
 
 Kebijakan RLS bertumpu pada `public.tenant_saya()` yang `SECURITY DEFINER`,
 supaya pembacaan tabel `pengguna` di dalamnya tidak ikut kena RLS.
@@ -384,6 +389,13 @@ diterbitkan di produksi lalu diunduh lewat tautan bertanda tangannya.
 Kuota paket sudah dipaksakan mesin. Diperiksa sebelum model dipanggil,
 bukan sesudah, karena memanggil model lalu membuang hasilnya tetap dibayar.
 
+Halaman depan publik hidup di `/`, terbuka tanpa sesi, dan angka paketnya
+dibaca dari `paket.ts` supaya brosur tidak bisa berbeda dari mesin.
+
+Tagihan langganan bisa diterbitkan, didaftar, dan ditandai lunas lewat
+`npm run tagihan`. Sudah dibuktikan ujung ke ujung di produksi, lalu
+tagihan ujinya dihapus lagi karena bulannya belum selesai.
+
 Urutan keputusan mesin balasan:
 
 ```
@@ -400,7 +412,9 @@ pesan masuk
 
 ### Biaya terukur
 
-Diukur dari tabel `jalan_ai`, bukan diperkirakan. Per 2 September 2026:
+Diukur dari tabel `jalan_ai`, bukan diperkirakan. Diperiksa ulang
+3 September 2026 dan angkanya belum berubah, karena layanan dijeda
+sepanjang hari itu jadi tidak ada panggilan model baru:
 
 | | Panggilan | Per panggilan |
 |---|---|---|
@@ -439,6 +453,14 @@ Tidak satu pun bisa dikerjakan dari dalam repo ini.
 4. **Buat akun administrasi platform** yang terpisah dari akun harian.
    `seawise.cc@gmail.com` sengaja bukan super admin, jadi `/platform`
    sekarang cuma menampilkan satu tenant.
+5. **Isi rekening Seawise** di `.env.local`, tiga baris `SEAWISE_BANK_*`.
+   Tanpa itu tagihan langganan tetap terbit tapi tanpa cara bayar, dan
+   tenant harus menanyakannya lewat chat. Tidak perlu dipasang di Vercel:
+   yang membacanya cuma `npm run tagihan` yang jalan di laptop, lalu
+   nilainya disalin ke baris tagihan.
+6. **Tambahkan scope `workflow` ke token GitHub**, atau pindahkan remote ke
+   SSH. Sampai itu beres, `.github/workflows/periksa.yml` tertahan di branch
+   dan push ke `main` masih terbit ke produksi tanpa gerbang.
 
 ## Yang perlu diputuskan
 
@@ -460,6 +482,19 @@ Tidak satu pun bisa dikerjakan dari dalam repo ini.
   melihat pesannya dibaca lalu didiamkan total. Mungkin lebih baik tetap
   keluar, karena "dibaca lalu didiamkan" lebih buruk daripada balasan
   otomatis yang jujur bilang sedang tidak aktif.
+- **Banyak nomor untuk satu tenant.** Paket Penuh pernah menjanjikan tiga
+  nomor, dan itu dikoreksi jadi satu pada 3 September 2026 karena mesinnya
+  memang tidak bisa. `pengaturan_tenant` memakai `tenant_id` sebagai primary
+  key, jadi satu tenant tepat satu token gateway dan satu `nomor_wa`, dan
+  webhook menolak pesan dari nomor perangkat lain. Fonnte sendiri bisa
+  banyak device dalam satu akun, jadi hambatannya murni di Reflows.
+
+  Kalau mau dibangun: tabel perangkat menggantikan kolom tunggal di
+  `pengaturan_tenant`, webhook memilih perangkat dari nomor tujuan,
+  pengiriman memilih token per percakapan, plus layar mengelolanya. Harganya
+  juga perlu naik Rp 175.000 per nomor tambahan, karena paket Fonnte berlaku
+  per device. Uji di `paket.test.ts` akan merah kalau angka nomornya
+  dinaikkan sebelum kodenya ada.
 - **Kampanye pertama.** Fase 3 jalan tapi belum pernah dipakai ke kontak
   sungguhan. Mulai kecil, sepuluh sampai dua puluh kontak, periksa rasio
   balasannya sebelum daftar besar dimasukkan.
@@ -523,27 +558,49 @@ Dikerjakan setelah serah terima, berurutan:
 
 1. **Logo, favicon, dan gambar Open Graph.** Bentuknya satu sumber di
    `src/lib/merek.ts`, dipakai komponen React, favicon SVG, ikon iOS, dan
-   gambar Open Graph sekaligus.
+   gambar Open Graph sekaligus. Dua gelembung chat menurun diagonal, warnanya
+   ikut aturan yang sudah ada: manusia teal atau oranye, AI biru atau ungu.
 2. **Halaman galat, lima berkas.** Sebelumnya tidak ada satu pun, jadi galat
    apa pun menampilkan halaman bawaan Next berlatar putih berbahasa Inggris.
+   Yang di dalam grup `(aplikasi)` mempertahankan bilah sisi.
 3. **CI di GitHub Actions.** Menjalankan `npm run periksa` tanpa satu pun
-   rahasia. Belum menahan deploy dengan sendirinya, itu perlu branch
-   protection di setelan GitHub.
+   rahasia, dan itu sudah dibuktikan di salinan repo tanpa `.env.local`.
+   **Commitnya belum terkirim**, lihat catatan di bawah.
 4. **Log terstruktur dan jaring pengaman balasan.** Sebelumnya nol `console`
    di seluruh `src`, dan galat tak terduga meninggalkan percakapan berstatus
    `ai` yang tidak akan pernah dibalas.
 5. **Halaman depan publik di `/`.** Angka paketnya dibaca dari `paket.ts`,
    jadi brosur tidak bisa berbeda dari yang dipaksakan mesin.
+6. **Tagihan langganan.** Tabel `tagihan_langganan` dan `npm run tagihan`,
+   Seawise menagih tenant lewat transfer manual. Tabelnya sengaja tanpa
+   kebijakan RLS untuk menulis sama sekali.
+7. **Gateway ditanggung Seawise, harga paket naik.** Membalik keputusan
+   sebelumnya. Paket Fonnte berlaku per device, bukan per akun, jadi tiap
+   nomor tetap berbiaya Rp 175.000 walaupun akunnya cuma satu. Harga naik
+   sebesar biaya itu, dan paket Penuh dikoreksi dari tiga nomor jadi satu.
 
 Keadaan yang berubah dari tabel serah terima:
 
 | | |
 |---|---|
-| Halaman depan | Hidup di `/`, terbuka tanpa sesi |
-| Ajakan halaman depan | `NEXT_PUBLIC_KONTAK_WA`, diisi nomor bisnis yang sama |
-| Uji | 208 unit, 43 skema, naik dari 183 unit |
+| Halaman depan | Hidup di `/`, terbuka tanpa sesi, ajakan chat ke nomor bisnis |
+| Harga paket | Mulai Rp 499.000, Tumbuh Rp 949.000, Penuh Rp 1.690.000 |
+| Gateway | Ditanggung Seawise, sudah termasuk harga paket |
+| Nomor per tenant | Satu, dan itu batas mesin bukan pilihan produk |
+| Tagihan langganan | Tabel dan skripnya jalan, belum ada tagihan sungguhan |
+| Uji | 223 unit, 50 skema, 21 produksi, semua hijau |
 
 Layanan **masih dijeda**, dan itu sengaja tidak diubah.
+
+### Yang tertinggal dari hari itu
+
+Commit `.github/workflows/periksa.yml` masih tertahan di branch
+`logo-dan-gerbang-periksa` di laptop. GitHub menolaknya dengan pesan
+"refusing to allow a Personal Access Token to create or update workflow
+without `workflow` scope", jadi ini urusan kredensial, bukan isi berkasnya.
+
+Itu dan dua hal lain ada di daftar "Yang menunggu kamu" di atas, nomor 2,
+5, dan 6.
 
 ---
 

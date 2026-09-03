@@ -244,16 +244,23 @@ sementara mesin berhenti di 750, dan yang menanggung selisihnya pelanggan
 yang sudah bayar. Uji `depan.test.ts` menjaga hubungan itu, termasuk
 memastikan paket baru tidak diam-diam absen dari halaman.
 
+Uji itu juga punya batas yang perlu diingat: ia mengikat angka yang tampil
+ke tabel `PAKET`, bukan mengikat `PAKET` ke apa yang bisa dikerjakan mesin.
+Klaim tiga nomor per tenant lolos begitu saja sampai ketahuan sendiri. Yang
+menutup celah itu uji di `paket.test.ts`, bukan yang ini.
+
 Isinya sengaja memuat hal yang biasanya disembunyikan halaman jualan:
 
-- Akun gateway atas nama tenant sendiri, dan paket gratis Fonnte menempelkan
-  tulisan iklan di setiap pesan keluar.
 - Belum ada pendaftaran mandiri, akun dibuatkan manual.
+- Satu nomor WhatsApp per bisnis, ditulis apa adanya di ketiga paket.
 - Urutan keputusan mesinnya ditulis apa adanya, termasuk bahwa AI berhenti
   dan menyerahkan chat ke manusia dalam beberapa keadaan.
 
 Ketiganya akan ketahuan di minggu pertama pemakaian. Menyembunyikannya cuma
 memindahkan kekecewaan ke titik yang lebih mahal, yaitu setelah orang bayar.
+
+Sejak 3 September 2026 gateway sudah termasuk harga paket, jadi halaman
+depan tidak lagi menyuruh calon pelanggan mendaftar layanan kedua.
 
 Ajakan chatnya memakai `NEXT_PUBLIC_KONTAK_WA`. Kalau kosong, tombolnya
 tidak muncul sama sekali dan ajakannya jatuh ke halaman masuk, karena
