@@ -422,6 +422,14 @@ Tidak satu pun bisa dikerjakan dari dalam repo ini.
   belum ada manusia yang baca. Satu-satunya jalan keluar adalah Reflows yang
   mengirim notifikasinya sendiri ke nomor pribadi pemilik. Sudah dibahas,
   belum dikerjakan atas permintaan pemilik.
+
+  **Urgensinya naik sejak 3 September 2026.** Halaman depan sekarang
+  mengarahkan calon pelanggan ke nomor bisnis yang sama. Selama layanan
+  dijeda, AI tidak membalas, sementara `autoread` tetap membuat chatnya
+  bercentang biru. Dari sisi orang yang baru tertarik: pesannya dibaca lalu
+  didiamkan. Sebelum ada halaman depan, yang chat cuma client lama yang
+  memang dipegang sendiri, jadi menundanya masuk akal. Sekarang ada pintu
+  masuk publik yang tidak dijaga siapa pun.
 - **Balasan luar jam saat layanan dijeda.** Sekarang ikut mati, jadi client
   melihat pesannya dibaca lalu didiamkan total. Mungkin lebih baik tetap
   keluar, karena "dibaca lalu didiamkan" lebih buruk daripada balasan
@@ -480,6 +488,36 @@ di inbox. Menyalakannya lagi satu tombol di halaman Pengaturan.
 Data uji semuanya sudah dibersihkan. Kalau ada sisa yang mencurigakan,
 periksa dengan `npm run tenant-aktif seawise`, yang menampilkan jumlah
 kontak, percakapan, pesan, dan materi.
+
+---
+
+## Tambahan, 3 September 2026
+
+Dikerjakan setelah serah terima, berurutan:
+
+1. **Logo, favicon, dan gambar Open Graph.** Bentuknya satu sumber di
+   `src/lib/merek.ts`, dipakai komponen React, favicon SVG, ikon iOS, dan
+   gambar Open Graph sekaligus.
+2. **Halaman galat, lima berkas.** Sebelumnya tidak ada satu pun, jadi galat
+   apa pun menampilkan halaman bawaan Next berlatar putih berbahasa Inggris.
+3. **CI di GitHub Actions.** Menjalankan `npm run periksa` tanpa satu pun
+   rahasia. Belum menahan deploy dengan sendirinya, itu perlu branch
+   protection di setelan GitHub.
+4. **Log terstruktur dan jaring pengaman balasan.** Sebelumnya nol `console`
+   di seluruh `src`, dan galat tak terduga meninggalkan percakapan berstatus
+   `ai` yang tidak akan pernah dibalas.
+5. **Halaman depan publik di `/`.** Angka paketnya dibaca dari `paket.ts`,
+   jadi brosur tidak bisa berbeda dari yang dipaksakan mesin.
+
+Keadaan yang berubah dari tabel serah terima:
+
+| | |
+|---|---|
+| Halaman depan | Hidup di `/`, terbuka tanpa sesi |
+| Ajakan halaman depan | `NEXT_PUBLIC_KONTAK_WA`, diisi nomor bisnis yang sama |
+| Uji | 208 unit, 43 skema, naik dari 183 unit |
+
+Layanan **masih dijeda**, dan itu sengaja tidak diubah.
 
 ---
 
