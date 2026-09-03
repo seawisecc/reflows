@@ -427,6 +427,66 @@ invoice yang tautannya mati sehari kemudian terlihat seperti penipuan.
   Menambah pelunasan bertahap berarti menambah buku besar kecil, dan itu
   produk yang berbeda.
 
+## Menagih tenant, transfer manual dulu
+
+Payment gateway masih diurus, jadi yang dipasang lebih dulu transfer manual.
+Keputusan itu menentukan bentuk tabelnya, bukan cuma cara bayarnya.
+
+### Tabel terpisah dari invoice, bukan menumpang
+
+`invoice` yang sudah ada dipakai tenant menagih clientnya, penomorannya
+milik tenant, dan tenant yang menerbitkan. Menumpangkan tagihan langganan ke
+sana berarti nomor invoice tenant ikut terpakai oleh tagihan yang bukan
+miliknya, dan dua hal yang berbeda pemiliknya diatur satu kebijakan RLS yang
+sama.
+
+### Yang ditagih tidak boleh bisa menulis
+
+`tagihan_langganan` tidak punya kebijakan RLS untuk insert, update, maupun
+delete sama sekali, dan haknya juga dicabut di tingkat tabel. Pencabutan
+ganda itu disengaja: kebijakan yang hilang di migrasi berikutnya tidak boleh
+langsung membuka penulisan.
+
+Alasannya sama persis dengan `tenants.aktif`. Kalau tenant bisa menulis,
+tenant bisa menyatakan dirinya lunas, dan seluruh gunanya hilang. Uji skema
+membuktikan tenant tidak bisa menerbitkan, melunasi, maupun menghapus, dan
+ketiganya terbukti merah begitu kebijakan tulis ditambahkan.
+
+### Angka disalin, sama seperti invoice
+
+Harga pokok, kuota, pemakaian, tarif kelebihan, dan rekening tujuan semuanya
+disalin ke baris tagihan. Menaikkan harga paket bulan depan tidak boleh
+mengubah tagihan yang sudah dibayar, dan mengganti rekening tidak boleh
+mengubah rekening yang tertulis di tagihan lama. Kalau nanti pindah ke
+payment gateway, baris lamanya tetap menjelaskan dirinya sendiri.
+
+### Batas kelebihan tidak dipakai saat menagih
+
+Kolom `batas_kelebihan` adalah rem pemakaian di tengah bulan. Saat menagih,
+bulannya sudah lewat dan yang dihitung apa yang benar-benar terpakai.
+Memakai batasnya di sini berarti pemakaian yang sempat lolos rem tidak ikut
+tertagih.
+
+### Bulan dihitung memakai zona tenant
+
+`pemakaian_bulan()` memotong bulan memakai zona waktu tenant, sama dengan
+`kuota_bulan_ini()`. Tanggal 1 pukul 07.00 WITA masih tanggal 31 di UTC,
+jadi memakai zona server berarti menagih bulan yang salah tepat di hari
+penagihan, dan angka di tagihan tidak akan cocok dengan angka yang dilihat
+tenant sepanjang bulan itu.
+
+### Yang sengaja belum dilakukan
+
+- **Tidak ada suspensi otomatis kalau tidak bayar.** Mematikan layanan
+  berarti chat client tenant berhenti dibalas, dan itu keputusan yang harus
+  diambil orang, bukan penghitung tanggal. Jalurnya tetap
+  `npm run tenant-aktif`.
+- **Tidak ada pengingat otomatis.** Alasannya sama dengan invoice ke client.
+- **Tidak ada tagihan sebagian atau prorata.** Tenant yang mulai di tengah
+  bulan ditagih penuh atau tidak ditagih sama sekali, ditentukan manual saat
+  menerbitkan. Prorata menambah aturan yang harus dijelaskan ke setiap
+  pelanggan, dan jumlah tenantnya belum sebanyak itu.
+
 ## Kuota paket, dan kenapa habisnya tidak mematikan AI
 
 Kuota diperiksa sebelum model dipanggil, bukan sesudah. Memanggil model lalu

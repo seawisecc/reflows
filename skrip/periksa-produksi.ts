@@ -54,6 +54,7 @@ const TABEL = [
   "pesan",
   "jalan_ai",
   "log_audit",
+  "tagihan_langganan",
 ];
 
 let lulus = 0;

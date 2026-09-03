@@ -8,6 +8,8 @@ import { Lencana } from "@/komponen/ui/lencana";
 import { ambil_penggunaan, biaya_jenis } from "@/lib/data/penggunaan";
 import { ambil_kuota } from "@/lib/data/kuota";
 import { KartuKuota } from "@/komponen/kartu-kuota";
+import { KartuTagihan } from "@/komponen/kartu-tagihan";
+import { ambil_tagihan } from "@/lib/data/tagihan";
 import { pengaturan_ringkas } from "@/lib/data/pengaturan";
 import { kurs_dolar } from "@/lib/ai/biaya";
 import { MODEL, model_sah } from "@/lib/ai/model";
@@ -24,9 +26,10 @@ function label_model(nama: string) {
 
 export default async function HalamanPenggunaan() {
   const pengaturan = await pengaturan_ringkas();
-  const [pakai, kuota] = await Promise.all([
+  const [pakai, kuota, tagihan] = await Promise.all([
     ambil_penggunaan(HARI, pengaturan?.zona_waktu ?? "Asia/Makassar"),
     ambil_kuota(),
+    ambil_tagihan(),
   ]);
   const kurs = kurs_dolar();
 
@@ -73,6 +76,7 @@ export default async function HalamanPenggunaan() {
       />
       <main className="space-y-6 p-4 sm:p-6">
         {kuota ? <KartuKuota kuota={kuota} /> : null}
+        {tagihan ? <KartuTagihan daftar={tagihan} /> : null}
 
         <section
           aria-label="Angka pemakaian"

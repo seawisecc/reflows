@@ -27,6 +27,7 @@
     "periksa-cron": "tsx skrip/periksa-cron.ts",
     "uji-kampanye": "tsx skrip/uji-kampanye.ts",
     "tenant-aktif": "tsx skrip/tenant-aktif.ts",
+    "tagihan": "tsx skrip/tagihan.ts",
     "contoh-invoice": "tsx skrip/contoh-invoice.ts",
     "uji-invoice": "tsx skrip/uji-invoice.ts"
   },

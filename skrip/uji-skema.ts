@@ -71,7 +71,8 @@ async function main() {
   const DIHARAPKAN = [
     "baris_invoice", "invoice", "jalan_ai", "kampanye", "kontak",
     "langkah_kampanye", "log_audit", "pengaturan_tenant", "pengetahuan",
-    "pengguna", "percakapan", "pesan", "sasaran_kampanye", "tenants",
+    "pengguna", "percakapan", "pesan", "sasaran_kampanye",
+    "tagihan_langganan", "tenants",
   ];
   const kurang = DIHARAPKAN.filter((t) => !namaTabel.includes(t));
   periksa(
@@ -567,6 +568,133 @@ async function main() {
     "super admin tetap bisa mengurus tenantnya sendiri",
     hapus_sendiri.rows.length === 1,
     `terhapus: ${hapus_sendiri.rows.length}`,
+  );
+
+  // Tagihan langganan. Yang ditagih tidak boleh bisa menerbitkan tagihan
+  // untuk dirinya sendiri, mengubah angkanya, atau menyatakan dirinya
+  // lunas. Tabelnya sengaja tanpa kebijakan tulis sama sekali.
+  console.log("\nTagihan langganan");
+  await db.exec(`reset role;`);
+  await db.exec(`
+    insert into public.tagihan_langganan
+      (tenant_id, periode, paket, harga_pokok, kuota, terpakai, kelebihan,
+       tarif_kelebihan, biaya_kelebihan, total)
+    values
+      ('aaaaaaaa-0000-0000-0000-000000000001', date '2026-08-01', 'mulai',
+       349000, 750, 800, 50, 300, 15000, 364000),
+      ('bbbbbbbb-0000-0000-0000-000000000002', date '2026-08-01', 'tumbuh',
+       749000, 2500, 1000, 0, 250, 0, 749000);
+  `);
+
+  await jadiPengguna("11111111-1111-1111-1111-111111111111");
+
+  const tagihan_sendiri = await db.query(
+    `select total from public.tagihan_langganan`,
+  );
+  periksa(
+    "tenant melihat tagihannya sendiri saja",
+    tagihan_sendiri.rows.length === 1,
+    `terlihat: ${tagihan_sendiri.rows.length}`,
+  );
+
+  let terbit_sendiri = "tidak ditolak";
+  try {
+    await db.query(
+      `insert into public.tagihan_langganan
+         (tenant_id, periode, paket, harga_pokok, kuota, terpakai, kelebihan,
+          tarif_kelebihan, biaya_kelebihan, total)
+       values ('aaaaaaaa-0000-0000-0000-000000000001', date '2026-07-01',
+               'mulai', 0, 750, 0, 0, 300, 0, 0)`,
+    );
+  } catch (e) {
+    terbit_sendiri = e instanceof Error ? e.message : String(e);
+  }
+  periksa(
+    "tenant tidak bisa menerbitkan tagihan untuk dirinya sendiri",
+    terbit_sendiri !== "tidak ditolak",
+    terbit_sendiri,
+  );
+
+  let lunas_sendiri = "tidak ditolak";
+  try {
+    const ubah = await db.query(
+      `update public.tagihan_langganan set status = 'lunas', dibayar_at = now()
+        where tenant_id = 'aaaaaaaa-0000-0000-0000-000000000001' returning id`,
+    );
+    lunas_sendiri = ubah.rows.length === 0 ? "tidak ada baris terubah" : "tidak ditolak";
+  } catch (e) {
+    lunas_sendiri = e instanceof Error ? e.message : String(e);
+  }
+  periksa(
+    "tenant tidak bisa menyatakan dirinya lunas",
+    lunas_sendiri !== "tidak ditolak",
+    lunas_sendiri,
+  );
+
+  let hapus_tagihan = "tidak ditolak";
+  try {
+    const hapus = await db.query(
+      `delete from public.tagihan_langganan
+        where tenant_id = 'aaaaaaaa-0000-0000-0000-000000000001' returning id`,
+    );
+    hapus_tagihan = hapus.rows.length === 0 ? "tidak ada baris terhapus" : "tidak ditolak";
+  } catch (e) {
+    hapus_tagihan = e instanceof Error ? e.message : String(e);
+  }
+  periksa(
+    "tenant tidak bisa menghapus tagihannya",
+    hapus_tagihan !== "tidak ditolak",
+    hapus_tagihan,
+  );
+
+  // Super admin boleh membaca lintas tenant, seperti tabel lain.
+  await jadiPengguna("33333333-3333-3333-3333-333333333333");
+  const tagihan_super = await db.query(
+    `select total from public.tagihan_langganan`,
+  );
+  periksa(
+    "super admin membaca tagihan semua tenant",
+    tagihan_super.rows.length === 2,
+    `terlihat: ${tagihan_super.rows.length}`,
+  );
+
+  // Periode wajib tanggal 1. Kalau tidak, unique per bulan tidak lagi
+  // mencegah satu tenant ditagih dua kali untuk bulan yang sama.
+  await db.exec(`reset role;`);
+  let periode_tengah = "tidak ditolak";
+  try {
+    await db.query(
+      `insert into public.tagihan_langganan
+         (tenant_id, periode, paket, harga_pokok, kuota, terpakai, kelebihan,
+          tarif_kelebihan, biaya_kelebihan, total)
+       values ('aaaaaaaa-0000-0000-0000-000000000001', date '2026-09-15',
+               'mulai', 349000, 750, 0, 0, 300, 0, 349000)`,
+    );
+  } catch (e) {
+    periode_tengah = e instanceof Error ? e.message : String(e);
+  }
+  periksa(
+    "periode tagihan wajib tanggal 1",
+    periode_tengah !== "tidak ditolak",
+    periode_tengah,
+  );
+
+  let dobel = "tidak ditolak";
+  try {
+    await db.query(
+      `insert into public.tagihan_langganan
+         (tenant_id, periode, paket, harga_pokok, kuota, terpakai, kelebihan,
+          tarif_kelebihan, biaya_kelebihan, total)
+       values ('aaaaaaaa-0000-0000-0000-000000000001', date '2026-08-01',
+               'mulai', 349000, 750, 0, 0, 300, 0, 349000)`,
+    );
+  } catch (e) {
+    dobel = e instanceof Error ? e.message : String(e);
+  }
+  periksa(
+    "satu tenant tidak bisa ditagih dua kali untuk bulan yang sama",
+    dobel !== "tidak ditolak",
+    dobel,
   );
 
   console.log("\nHak service_role");

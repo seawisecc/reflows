@@ -121,10 +121,11 @@ itu dalam satu deretan hanya boleh ada satu warna alarm.
 
 ## Model data
 
-Empat belas tabel, semuanya membawa `tenant_id` dan dijaga RLS:
+Lima belas tabel, semuanya membawa `tenant_id` dan dijaga RLS:
 `tenants`, `pengguna`, `pengaturan_tenant`, `pengetahuan`, `kontak`,
 `percakapan`, `pesan`, `jalan_ai`, `log_audit`, `kampanye`,
-`langkah_kampanye`, `sasaran_kampanye`, `invoice`, `baris_invoice`.
+`langkah_kampanye`, `sasaran_kampanye`, `invoice`, `baris_invoice`,
+`tagihan_langganan`.
 
 PDF invoice tinggal di bucket Supabase Storage bernama `invoice` yang
 tertutup. Bucket itu dibuat lewat API penyimpanan, bukan lewat migrasi, jadi
@@ -143,6 +144,29 @@ dipanggil webhook saat kontak membalas.
 
 Kebijakan RLS bertumpu pada `public.tenant_saya()` yang `SECURITY DEFINER`,
 supaya pembacaan tabel `pengguna` di dalamnya tidak ikut kena RLS.
+
+### Dua tabel tagihan yang sering tertukar
+
+| | Siapa menagih siapa | Siapa yang menulis |
+|---|---|---|
+| `invoice` | Tenant menagih clientnya | Tenant, lewat layar Invoice |
+| `tagihan_langganan` | Seawise menagih tenant | Seawise, lewat `npm run tagihan` |
+
+`tagihan_langganan` sengaja **tidak punya kebijakan RLS untuk menulis sama
+sekali**, dan haknya juga dicabut di tingkat tabel. Tenant cuma bisa
+membacanya, di halaman Penggunaan. Alasannya sama dengan kolom
+`tenants.aktif`: pihak yang ditagih tidak boleh bisa menerbitkan tagihan
+untuk dirinya, mengubah angkanya, atau menyatakan dirinya lunas. Uji skema
+membuktikan keempatnya, dan langsung merah begitu kebijakan tulis
+ditambahkan.
+
+Semua angka dan rekening tujuannya disalin saat diterbitkan, sama seperti
+invoice ke client. Menaikkan harga paket bulan depan tidak mengubah tagihan
+yang sudah dibayar, dan mengganti rekening tidak mengubah rekening yang
+tertulis di tagihan lama.
+
+Pembayarannya transfer manual dulu, lalu Seawise menandainya lunas.
+Payment gateway menyusul.
 
 ### Dua saklar mematikan layanan
 
@@ -543,6 +567,7 @@ Layanan **masih dijeda**, dan itu sengaja tidak diubah.
 | `npm run buat-pengguna` | Membuat akun masuk |
 | `npm run bersihkan-contoh` | Menghapus kontak percobaan |
 | `npm run tenant-aktif` | Melihat, menyuspensi, atau mengaktifkan tenant |
+| `npm run tagihan` | Menerbitkan dan melunasi tagihan langganan tenant |
 
 Uji produksi menulis ke Supabase sungguhan lalu membersihkan sendiri, dan
 nomor sasarannya selalu berkode negara 999 yang dicadangkan ITU. Jangan
