@@ -5,6 +5,10 @@ import { susun_balasan, type Jejak } from "./ai/balas";
 import { catat_pesan_keluar, kredensial_gateway } from "./gudang-supabase";
 import { pilih_gateway } from "./gateway";
 import { izin_kuota, paket_sah, type NamaPaket } from "./paket";
+import {
+  dengan_jaring,
+  type HasilBalasOtomatis,
+} from "./jaring-balasan";
 import type { ButirPengetahuan, ModeBalas, Pesan } from "@/tipe";
 
 /**
@@ -17,10 +21,7 @@ import type { ButirPengetahuan, ModeBalas, Pesan } from "@/tipe";
  * hilang. Yang gagal cuma balasannya, dan percakapannya dilempar ke manusia.
  */
 
-export type HasilBalasOtomatis = {
-  tindakan: "kirim" | "draf" | "eskalasi" | "lewat";
-  alasan: string | null;
-};
+export type { HasilBalasOtomatis };
 
 /**
  * Sisa kuota balasan AI bulan ini.
@@ -80,15 +81,17 @@ async function catat_jejak(
   });
 }
 
-export async function balas_otomatis(
+type MasukanBalas = {
+  tenant_id: string;
+  percakapan_id: string;
+  nomor_kontak: string;
+  mode_balas: ModeBalas;
+  ambang_keyakinan: number;
+};
+
+async function jalankan_balasan(
   db: SupabaseClient,
-  masukan: {
-    tenant_id: string;
-    percakapan_id: string;
-    nomor_kontak: string;
-    mode_balas: ModeBalas;
-    ambang_keyakinan: number;
-  },
+  masukan: MasukanBalas,
 ): Promise<HasilBalasOtomatis> {
   const kuota = await boleh_pakai_kuota(db, masukan.tenant_id);
   if (!kuota.boleh) {
@@ -245,4 +248,31 @@ export async function balas_otomatis(
     .eq("id", masukan.percakapan_id);
 
   return { tindakan: "kirim", alasan: null };
+}
+
+/**
+ * Pembungkus yang membuat janji di komentar atas berkas ini benar-benar
+ * dipegang: fungsi ini tidak pernah melempar.
+ *
+ * Sebelumnya janji itu cuma tertulis. Semua kegagalan yang memang
+ * diperkirakan sudah dilempar ke manusia dengan alasan yang kelihatan di
+ * inbox, tapi galat yang tidak diperkirakan lolos ke pemanggil, ditangkap
+ * webhook, lalu hilang. Percakapannya tetap berstatus ai, jadi di layar
+ * terlihat persis sama dengan chat yang memang sedang dipegang AI, padahal
+ * tidak akan pernah ada yang membalas.
+ */
+export async function balas_otomatis(
+  db: SupabaseClient,
+  masukan: MasukanBalas,
+): Promise<HasilBalasOtomatis> {
+  return dengan_jaring(
+    { tenant_id: masukan.tenant_id, percakapan_id: masukan.percakapan_id },
+    () => jalankan_balasan(db, masukan),
+    async (alasan) => {
+      await db
+        .from("percakapan")
+        .update({ status: "manual", alasan_eskalasi: alasan })
+        .eq("id", masukan.percakapan_id);
+    },
+  );
 }

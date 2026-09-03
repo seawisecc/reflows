@@ -8,6 +8,7 @@ import {
 import { terima_pesan } from "@/lib/penerimaan";
 import { baca_webhook_fonnte, pilih_gateway } from "@/lib/gateway";
 import { balas_otomatis } from "@/lib/balas-otomatis";
+import { catat, catat_galat } from "@/lib/log";
 
 /** Webhook harus jalan di Node, bukan Edge, karena enkripsi token pakai node:crypto. */
 export const runtime = "nodejs";
@@ -87,8 +88,20 @@ async function kirim_balasan_otomatis(
       wa_message_id: hasil.ok ? hasil.wa_message_id : null,
     });
 
+    if (!hasil.ok) {
+      catat("wa.luar-jam-ditolak", {
+        tenant_id: masukan.tenant_id,
+        percakapan_id: masukan.percakapan_id,
+        sebab: hasil.alasan,
+      });
+    }
+
     return hasil.ok;
-  } catch {
+  } catch (e) {
+    catat_galat("wa.luar-jam-gagal", e, {
+      tenant_id: masukan.tenant_id,
+      percakapan_id: masukan.percakapan_id,
+    });
     return false;
   }
 }
@@ -102,7 +115,8 @@ export async function POST(
   let muatan: unknown;
   try {
     muatan = await baca_badan(permintaan);
-  } catch {
+  } catch (e) {
+    catat_galat("wa.badan-ditolak", e);
     return NextResponse.json({ ok: false }, { status: 413 });
   }
 
@@ -151,13 +165,26 @@ export async function POST(
         ambang_keyakinan: hasil.ambang_keyakinan,
       });
       balasan_ai = jawab.tindakan;
-    } catch {
-      // Pesan clientnya sudah aman tersimpan. Kegagalan menyusun balasan
-      // tidak boleh membuat webhook menjawab galat, karena gateway akan
-      // mengirim ulang terus-menerus untuk pesan yang sebenarnya sudah masuk.
+    } catch (e) {
+      // balas_otomatis sudah dijamin tidak melempar, jadi sampai di sini
+      // berarti ada yang benar-benar di luar dugaan. Tetap dijawab 200:
+      // pesan clientnya sudah aman tersimpan, dan webhook yang menjawab
+      // galat cuma membuat gateway mengirim ulang pesan yang sudah masuk.
+      catat_galat("wa.balasan-tak-tertangani", e, {
+        tenant_id: hasil.tenant_id,
+        percakapan_id: hasil.percakapan_id,
+      });
       balasan_ai = "gagal";
     }
   }
+
+  catat("wa.masuk", {
+    tenant_id: hasil.tenant_id,
+    percakapan_id: hasil.percakapan_id,
+    status: hasil.status,
+    jenis: hasil.izin.jenis,
+    tindakan: balasan_ai ?? "tidak-dibalas",
+  });
 
   return NextResponse.json({
     ok: true,

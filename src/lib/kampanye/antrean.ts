@@ -12,6 +12,7 @@ import { catat_pesan_keluar, kredensial_gateway } from "@/lib/gudang-supabase";
 import { izin_layanan } from "@/lib/layanan";
 import { pilih_gateway } from "@/lib/gateway";
 import type { AngkaKampanye, LangkahKampanye } from "@/tipe";
+import { catat_galat } from "@/lib/log";
 
 /**
  * Satu putaran antrean kampanye.
@@ -353,6 +354,10 @@ export async function jalankan_antrean(
     try {
       hasil.push(await jalankan_satu_kampanye(db, k.id, sekarang));
     } catch (e) {
+      // Hasilnya dikembalikan ke pemanggil, tapi pemanggilnya pg_cron yang
+      // tidak membaca badan jawaban. Tanpa baris log ini, kampanye yang
+      // gagal tiap menit tidak meninggalkan jejak di mana pun.
+      catat_galat("kampanye.putaran-gagal", e, { kampanye_id: k.id });
       hasil.push({
         kampanye_id: k.id,
         nama: "",

@@ -69,6 +69,7 @@ src/lib/gateway/      Adapter WhatsApp: jenis, nomor, fonnte, mock
 src/lib/impor/        Impor materi dari PDF, web, dan spreadsheet
 src/lib/data/         Pembacaan data lewat sesi pengguna (kena RLS)
 src/lib/supabase/     Klien browser, server, service role, proxy
+src/lib/log.ts        Log terstruktur, dengan daftar kunci yang boleh terbit
 src/lib/merek.ts      Bentuk dan warna logo, satu sumber untuk semua turunannya
 src/komponen/merek/   Lambang untuk dipakai di dalam aplikasi
 src/aset/             Berkas mentah yang ikut repo, sekarang font gambar OG
@@ -202,6 +203,12 @@ melihat semuanya. Akun administrasi platform yang terpisah belum dibuat.
   169.254.169.254 milik metadata cloud, dan tiap pengalihan diperiksa ulang.
 - **Gerbang server action** selalu lewat klien bersesi supaya yang menolak
   adalah RLS, bukan perbandingan `tenant_id` yang ditulis tangan.
+- **Log server** cuma boleh memuat id dan sebab, tidak pernah isi chat atau
+  nomor WhatsApp. Penyaring di `src/lib/log.ts` memilih kunci satu per satu
+  dari daftar, jadi kunci yang tidak terdaftar hilang walaupun pemanggilnya
+  memaksa lewat cast. Alasannya sama dengan mematikan Inbox Fonnte: isi chat
+  client tidak boleh menginap di server orang lain, dan log Vercel adalah
+  server orang lain.
 
 ---
 
@@ -295,6 +302,15 @@ Dicatat supaya tidak terulang.
     tanpa galat apa pun yang kelihatan. Keduanya sudah didaftarkan di
     `TERBUKA`. Ini varian dari jebakan nomor 14, dan sama tidak
     kelihatannya.
+23. **Janji "tidak akan melempar" yang cuma ditulis di komentar akan
+    dilanggar.** `balas_otomatis` sudah lama berkomentar bahwa kegagalannya
+    tidak boleh menjatuhkan webhook, dan semua kegagalan yang diperkirakan
+    memang dilempar ke manusia dengan alasan yang kelihatan di inbox. Tapi
+    galat yang tidak diperkirakan lolos ke pemanggil, ditangkap `catch`
+    kosong di webhook, lalu hilang. Percakapannya tetap berstatus `ai`, dan
+    di layar itu terlihat persis sama dengan chat yang memang sedang
+    dipegang AI. Sekarang janjinya dipegang kode, bukan komentar, lewat
+    `dengan_jaring` di `src/lib/jaring-balasan.ts` yang diuji terpisah.
 
 ---
 
